@@ -39,6 +39,28 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png' },
     ],
   },
+  openGraph: {
+    title: "Coe™ - Mentally & Physically",
+    description: "自律神経や服薬を記録するためのPWAヘルスログアプリ",
+    url: "https://coe-app.vercel.app", // 本番URLが決まっていれば変更
+    siteName: "Coe",
+    images: [
+      {
+        url: "/head.png",
+        width: 1200,
+        height: 630,
+        alt: "Coe - Health Log App",
+      },
+    ],
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Coe™ - Mentally & Physically",
+    description: "自律神経や服薬を記録するためのPWAヘルスログアプリ",
+    images: ["/head.png"],
+  },
 };
 
 export default function RootLayout({
