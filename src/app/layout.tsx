@@ -32,6 +32,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/icon-192x192.png", // fallback
+    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
 };

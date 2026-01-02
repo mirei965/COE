@@ -41,6 +41,7 @@ body {
   /* Light: Refreshing Teal morning (White -> Teal-50 -> Teal-100) */
   background: linear-gradient(to bottom, #ffffff, #f0fdfa, #ccfbf1) !important;
   min-height: 100vh;
+  overscroll-behavior-y: none; /* Prevent browser native pull-to-refresh/bounce */
 
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
