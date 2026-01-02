@@ -5,63 +5,64 @@ import { createPortal } from 'react-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/Card';
+import { Pill, Download, Upload, Trash2, AlertTriangle, Check, ChevronDown, Plus } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Switch } from '@/components/ui/Switch';
-import { useSetting } from '@/hooks/useSettings';
-import { db } from '@/db/db';
-import { Download, Upload, Trash2, AlertTriangle, ChevronDown, Check, Pill, Plus } from 'lucide-react';
-import { useRegimen } from '@/hooks/useRegimen';
 import { Input } from '@/components/ui/Input';
-import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/Switch';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/db/db';
+import { cn } from '@/lib/utils';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const profileSchema = z.string().min(1, '名前を入力してください').max(20, '名前は20文字以内で入力してください');
+const regimenSchema = z.object({
+  type: z.enum(['maintenance', 'tapering', 'titration']),
+  startDate: z.string(),
+  description: z.string().optional(),
+});
 
 export default function SettingsPage() {
+  const settings = useLiveQuery(() => db.settings.toArray());
+  const userProfile = settings?.find(s => s.key === 'user_profile')?.value;
+  const dbNotifications = settings?.find(s => s.key === 'notifications_enabled')?.value;
+  const activeRegimen = useLiveQuery(() => db.regimenHistory.filter(r => r.isActive).first());
+
+  const [localName, setLocalName] = useState('');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // 設定値（通知）
-  const { value: notificationsEnabled, setValue: setNotificationsEnabled } =
-    useSetting<boolean>('notificationsEnabled', false);
-
-  // 設定値（プロフィール）
-  const { value: userProfile, setValue: setUserProfile } =
-    useSetting<{ name: string }>('userProfile', { name: '' });
-  const { setRegimen, activeRegimen } = useRegimen();
-
-  // プロフィール名用ローカルステート（IME入力対策）
-  const [localName, setLocalName] = useState('');
-  useEffect(() => {
-    if (userProfile?.name) {
-      setLocalName(userProfile.name);
-    }
-  }, [userProfile?.name]);
-
-  // レジメン入力用State
-  const [regimenForm, setRegimenForm] = useState({
-    type: 'tapering',
+  // Regimen Modal State
+  const [showRegimenModal, setShowRegimenModal] = useState(false);
+  const [regimenForm, setRegimenForm] = useState<{
+    type: 'maintenance' | 'tapering' | 'titration';
+    startDate: string;
+  }>({
+    type: 'maintenance',
     startDate: new Date().toISOString().split('T')[0],
-    description: '',
   });
 
-  // Clinic States
+  // Clinic Visit State
   const [newClinicName, setNewClinicName] = useState('');
   const [newVisit, setNewVisit] = useState({
+    clinicId: 0,
     date: new Date().toISOString().split('T')[0],
-    time: '10:00',
-    note: '',
-    clinicId: 0
+    time: '',
+    note: ''
   });
   const [showClinicSelector, setShowClinicSelector] = useState(false);
-  const [showRegimenModal, setShowRegimenModal] = useState(false);
+
+  // Medicine State
+  const [newMed, setNewMed] = useState({
+    name: '',
+    type: 'regular' as 'regular' | 'prn',
+    dosage: '',
+    dailyDose: '',
+  });
 
   const [showImportSuccess, setShowImportSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -75,13 +76,62 @@ export default function SettingsPage() {
   const visits = useLiveQuery(() => db.clinicVisits.orderBy('date').toArray());
   const medicines = useLiveQuery(() => db.medicines.toArray());
 
-  // Medicine Form
-  const [newMed, setNewMed] = useState({
-    name: '',
-    dosage: '',
-    type: 'regular' as 'regular' | 'prn',
-    dailyDose: ''
-  });
+  useEffect(() => {
+    // Check and validate userProfile safely
+    const profileResult = z.object({ name: z.string() }).safeParse(userProfile);
+    if (profileResult.success) {
+      setLocalName(profileResult.data.name);
+    }
+
+    // Check and validate notification settings
+    const notificationResult = z.boolean().safeParse(dbNotifications);
+    if (notificationResult.success) {
+      setNotificationsEnabled(notificationResult.data);
+    }
+
+    if (activeRegimen) {
+      setRegimenForm({
+        type: activeRegimen.type,
+        startDate: activeRegimen.startDate,
+      });
+    }
+  }, [userProfile, dbNotifications, activeRegimen]);
+
+  const handleSaveProfile = async (name: string) => {
+    try {
+      profileSchema.parse(name);
+      await db.settings.put({ key: 'user_profile', value: { name } });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        // Handle validation error (could add toast here)
+      }
+    }
+  };
+
+  const handleSubmitRegimen = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    try {
+      // Improve logic to handle existing regimens
+      // Deactivate current active regimen
+      if (activeRegimen) {
+        await db.regimenHistory.update(activeRegimen.id!, { isActive: false });
+      }
+
+      await db.regimenHistory.add({
+        type: regimenForm.type,
+        startDate: regimenForm.startDate,
+        description: regimenForm.type === 'maintenance' ? '維持期' : regimenForm.type === 'tapering' ? '減薬中' : '増薬・導入中',
+        isActive: true,
+        createdAt: Date.now(),
+      });
+
+      setShowRegimenModal(false);
+    } catch (error) {
+      setErrorMessage('設定の保存に失敗しました');
+    }
+  };
 
   const handleAddClinic = async () => {
     if (!newClinicName.trim()) return;
@@ -104,30 +154,37 @@ export default function SettingsPage() {
       note: newVisit.note,
       isCompleted: false
     });
-    setNewVisit({
-      date: new Date().toISOString().split('T')[0],
-      time: '10:00',
-      note: '',
-      clinicId: 0
-    });
+    setNewVisit({ clinicId: 0, date: new Date().toISOString().split('T')[0], time: '', note: '' });
   };
 
   const handleDeleteVisit = async (id: number) => {
-    if (confirm('予定を削除しますか？')) {
+    if (confirm('この予定を削除しますか？')) {
       await db.clinicVisits.delete(id);
     }
   };
 
+  const medicineFormSchema = z.object({
+    name: z.string().min(1, '薬品名を入力してください'),
+    type: z.enum(['regular', 'prn']),
+    dosage: z.string(),
+    dailyDose: z.string().optional(),
+  });
+
   const handleAddMedicine = async () => {
-    if (!newMed.name) return;
-    await db.medicines.add({
-      name: newMed.name,
-      dosage: newMed.dosage,
-      type: newMed.type,
-      dailyDose: newMed.type === 'regular' ? newMed.dailyDose : undefined,
-      updatedAt: Date.now()
-    });
-    setNewMed({ name: '', dosage: '', type: 'regular', dailyDose: '' });
+    try {
+      medicineFormSchema.parse(newMed);
+
+      await db.medicines.add({
+        name: newMed.name,
+        type: newMed.type,
+        dosage: newMed.dosage,
+        dailyDose: newMed.type === 'regular' ? newMed.dailyDose : undefined,
+        updatedAt: Date.now(),
+      });
+      setNewMed({ name: '', type: 'regular', dosage: '', dailyDose: '' });
+    } catch (error) {
+      console.error('Validation error:', error);
+    }
   };
 
   const handleDeleteMedicine = async (id: number) => {
@@ -136,33 +193,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveProfile = (name: string) => {
-    setUserProfile({ ...userProfile, name });
-  };
-
-  const handleSubmitRegimen = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setErrorMessage('');
-
-
-    try {
-      await setRegimen({
-        type: regimenForm.type as 'maintenance' | 'tapering' | 'titration',
-        startDate: regimenForm.startDate,
-        description: regimenForm.description,
-      });
-
-      setRegimenForm({
-        ...regimenForm,
-        description: '',
-      });
-      setShowRegimenModal(false);
-    } catch (error) {
-      console.error(error);
-      setErrorMessage('保存中にエラーが発生しました');
-    }
-  };
 
   const handleExport = async () => {
     try {
@@ -259,7 +289,6 @@ export default function SettingsPage() {
             if (data.clinics) await db.clinics.bulkPut(data.clinics);
             if (data.clinicVisits) await db.clinicVisits.bulkPut(data.clinicVisits);
           });
-
           setShowImportSuccess(true);
         } catch (error) {
           console.error('インポートエラー:', error);
@@ -270,7 +299,7 @@ export default function SettingsPage() {
       };
       input.click();
     } catch (error) {
-      console.error('インポートエラー:', error);
+      console.error('File select error:', error);
     }
   };
 
@@ -829,29 +858,27 @@ export default function SettingsPage() {
       </div>
 
       {/* Import Success Modal */}
-      {
-        mounted && showImportSuccess && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-4 text-center">
-              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-slate-100">インポート完了</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                データが正常に復元されました。<br />
-                反映するためには再読み込みが必要です。
-              </p>
-              <Button
-                className="w-full font-bold rounded-xl"
-                onClick={() => window.location.reload()}
-              >
-                再読み込みして完了
-              </Button>
+      {mounted && showImportSuccess && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-4 text-center">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="h-6 w-6" />
             </div>
-          </div>,
-          document.body
-        )
-      }
-    </PageLayout >
+            <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-slate-100">インポート完了</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              データが正常に復元されました。<br />
+              反映するためには再読み込みが必要です。
+            </p>
+            <Button
+              className="w-full font-bold rounded-xl"
+              onClick={() => window.location.reload()}
+            >
+              再読み込みして完了
+            </Button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </PageLayout>
   );
 }
