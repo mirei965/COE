@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import Link from 'next/link';
@@ -64,6 +65,11 @@ export default function SettingsPage() {
 
   const [showImportSuccess, setShowImportSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const clinics = useLiveQuery(() => db.clinics.toArray());
   const visits = useLiveQuery(() => db.clinicVisits.orderBy('date').toArray());
@@ -323,7 +329,7 @@ export default function SettingsPage() {
             <CardTitle>服薬フェーズ管理</CardTitle>
             <CardDescription>現在の減薬・維持状況を設定します</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-24">
             {activeRegimen && (
               <div className="bg-brand-50 dark:bg-brand-900/30 p-4 rounded-lg border border-brand-100 dark:border-brand-800 mb-4">
                 <span className="text-xs font-bold text-brand-600 dark:text-brand-400 block mb-1">現在進行中</span>
@@ -346,10 +352,10 @@ export default function SettingsPage() {
             </div>
 
             {/* Regimen Modal */}
-            {showRegimenModal && (
-              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowRegimenModal(false)}>
+            {mounted && showRegimenModal && createPortal(
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowRegimenModal(false)}>
                 <div
-                  className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl p-6 shadow-xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 mx-auto"
+                  className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto"
                   onClick={e => e.stopPropagation()}
                 >
                   <h3 className="text-center font-bold mb-6 text-slate-900 dark:text-slate-100 text-lg">服薬フェーズ設定</h3>
@@ -403,7 +409,8 @@ export default function SettingsPage() {
                     </div>
                   </form>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </CardContent>
         </Card>
@@ -500,8 +507,8 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Bottom Sheet Modal for Clinic Selection */}
-                  {showClinicSelector && (
-                    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 pt-[700px]" onClick={() => setShowClinicSelector(false)}>
+                  {mounted && showClinicSelector && createPortal(
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4" onClick={() => setShowClinicSelector(false)}>
                       <div
                         className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto max-h-[90vh] overflow-y-auto"
                         onClick={e => e.stopPropagation()}
@@ -539,7 +546,8 @@ export default function SettingsPage() {
                           キャンセル
                         </button>
                       </div>
-                    </div>
+                    </div>,
+                    document.body
                   )}
 
                   <div className="grid grid-cols-1 gap-3 min-w-0 w-full max-w-full">
@@ -821,26 +829,29 @@ export default function SettingsPage() {
       </div>
 
       {/* Import Success Modal */}
-      {showImportSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-4 text-center">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="h-6 w-6" />
+      {
+        mounted && showImportSuccess && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-4 text-center">
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-slate-100">インポート完了</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                データが正常に復元されました。<br />
+                反映するためには再読み込みが必要です。
+              </p>
+              <Button
+                className="w-full font-bold rounded-xl"
+                onClick={() => window.location.reload()}
+              >
+                再読み込みして完了
+              </Button>
             </div>
-            <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-slate-100">インポート完了</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-              データが正常に復元されました。<br />
-              反映するためには再読み込みが必要です。
-            </p>
-            <Button
-              className="w-full font-bold rounded-xl"
-              onClick={() => window.location.reload()}
-            >
-              再読み込みして完了
-            </Button>
-          </div>
-        </div>
-      )}
-    </PageLayout>
+          </div>,
+          document.body
+        )
+      }
+    </PageLayout >
   );
 }
