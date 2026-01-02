@@ -12,10 +12,10 @@ import { db } from '@/db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 const DEFAULT_STAMPS = {
-  symptom: ['息苦しさ', '焦燥感', 'めまい', '脳のしびれ', '耳鳴り'],
-  medicine: ['ソラナックス', 'レルパックス', 'ロキソニン'],
-  trigger: ['低気圧', '人混み', 'PC作業', '騒音'],
-  food: ['カロリーメイト', '水', 'プロテイン'],
+  symptom: ['頭痛', 'めまい', '耳鳴り', '気分の落ち込み', '不安感'],
+  medicine: [],
+  trigger: ['低気圧', '睡眠不足', 'ストレス', '人混み', '音', '光'],
+  food: ['水', 'カフェイン', 'アルコール'],
 };
 
 // Component to handle local input state for IME compatibility
