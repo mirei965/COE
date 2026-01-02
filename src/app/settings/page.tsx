@@ -61,6 +61,8 @@ export default function SettingsPage() {
   });
   const [showClinicSelector, setShowClinicSelector] = useState(false);
   const [showRegimenModal, setShowRegimenModal] = useState(false);
+
+  const [showImportSuccess, setShowImportSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const clinics = useLiveQuery(() => db.clinics.toArray());
@@ -205,16 +207,47 @@ export default function SettingsPage() {
 
           // トランザクションで一括インポート
           await db.transaction('rw', [db.dayLogs, db.eventLogs, db.regimenHistory, db.settings, db.clinics, db.clinicVisits, db.medicines], async () => {
-            if (data.dayLogs) await db.dayLogs.bulkPut(data.dayLogs);
-            if (data.eventLogs) await db.eventLogs.bulkPut(data.eventLogs);
-            if (data.regimenHistory) await db.regimenHistory.bulkPut(data.regimenHistory);
+            // Data Sanitization & Migration
+            if (data.dayLogs) {
+              const sanitizedDayLogs = data.dayLogs.map((log: any) => ({
+                ...log,
+                sleepStart: log.sleepStart ? new Date(log.sleepStart) : undefined,
+                sleepEnd: log.sleepEnd ? new Date(log.sleepEnd) : undefined,
+              }));
+              await db.dayLogs.bulkPut(sanitizedDayLogs);
+            }
+
+            if (data.eventLogs) {
+              const sanitizedEventLogs = data.eventLogs.map((log: any) => ({
+                ...log,
+                timestamp: log.timestamp || new Date(log.date).getTime(),
+                severity: (log.severity === 1 || log.severity === 2 || log.severity === 3) ? log.severity : 1,
+              }));
+              await db.eventLogs.bulkPut(sanitizedEventLogs);
+            }
+
+            if (data.regimenHistory) {
+              const sanitizedRegimens = data.regimenHistory.map((regimen: any) => ({
+                ...regimen,
+                startDate: regimen.startDate || new Date().toISOString().split('T')[0],
+              }));
+              await db.regimenHistory.bulkPut(sanitizedRegimens);
+            }
+
+            if (data.medicines) {
+              const sanitizedMedicines = data.medicines.map((med: any) => ({
+                ...med,
+                type: (med.type === 'regular' || med.type === 'prn') ? med.type : 'regular',
+              }));
+              await db.medicines.bulkPut(sanitizedMedicines);
+            }
+
             if (data.settings) await db.settings.bulkPut(data.settings);
             if (data.clinics) await db.clinics.bulkPut(data.clinics);
             if (data.clinicVisits) await db.clinicVisits.bulkPut(data.clinicVisits);
-            if (data.medicines) await db.medicines.bulkPut(data.medicines);
           });
 
-          alert('データのインポートが完了しました');
+          setShowImportSuccess(true);
         } catch (error) {
           console.error('インポートエラー:', error);
           alert('データのインポートに失敗しました。ファイル形式を確認してください。');
@@ -502,7 +535,7 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  <div className="flex flex-col gap-3 min-w-0 w-full max-w-full">
+                  <div className="grid grid-cols-1 gap-3 min-w-0 w-full max-w-full">
                     <div className="relative w-full max-w-full min-w-0">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
@@ -779,6 +812,28 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Import Success Modal */}
+      {showImportSuccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-4 text-center">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="h-6 w-6" />
+            </div>
+            <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-slate-100">インポート完了</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              データが正常に復元されました。<br />
+              反映するためには再読み込みが必要です。
+            </p>
+            <Button
+              className="w-full font-bold rounded-xl"
+              onClick={() => window.location.reload()}
+            >
+              再読み込みして完了
+            </Button>
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
