@@ -7,7 +7,7 @@ export function useRegimen() {
     try {
       const all = await db.regimenHistory.toArray();
       // Find the last active entry (supporting both boolean true and number 1)
-      const active = all.filter(r => r.isActive === true || r.isActive === 1).pop();
+      const active = all.filter(r => r.isActive).pop();
       return active ?? null;
     } catch (e) {
       console.error(e);
@@ -46,7 +46,7 @@ export function useRegimen() {
         ...data,
         isActive: true,
         createdAt: Date.now(),
-      } as any);
+      });
     });
   }, []);
 

@@ -93,7 +93,7 @@ export function DayStamps() {
         const maxLevel = isQuantityType ? 4 : 3;
         const newSeverity = (last.severity % maxLevel) + 1;
 
-        await updateEventLog(last.id, { severity: newSeverity as any });
+        await updateEventLog(last.id, { severity: newSeverity as 1 | 2 | 3 });
 
         setLastLoggedMap(prev => ({
           ...prev,
@@ -111,7 +111,7 @@ export function DayStamps() {
       } else {
         // Create a new log entry
         const id = await addEventLog({
-          type: type as any,
+          type: type as 'symptom' | 'medicine' | 'trigger' | 'food',
           name: logName,
           severity: 1,
         });
@@ -136,7 +136,7 @@ export function DayStamps() {
   /**
    * Updates specific detail fields for an item (dosage, status)
    */
-  const updateItemDetail = (name: string, field: keyof ItemDetail, value: any) => {
+  const updateItemDetail = (name: string, field: keyof ItemDetail, value: unknown) => {
     const currentDetails = itemDetails || {};
     setItemDetails({
       ...currentDetails,
@@ -148,7 +148,7 @@ export function DayStamps() {
   };
 
   const handleSelectOption = (item: string, value: string) => {
-    updateItemDetail(item, 'status', value as any);
+    updateItemDetail(item, 'status', value as 'none' | 'decrease' | 'increase' | 'new' | 'stop');
     setOpenDropdown(null);
   };
 

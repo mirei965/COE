@@ -46,7 +46,7 @@ export const ClinicVisitSchema = z.object({
 }).passthrough();
 
 // バリデーション関数のマップ
-export const SchemaMap: Record<string, z.ZodType<any>> = {
+export const SchemaMap: Record<string, z.ZodType<unknown>> = {
   dayLogs: DayLogSchema,
   eventLogs: EventLogSchema,
   regimenHistory: RegimenHistorySchema,

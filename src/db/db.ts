@@ -4,7 +4,7 @@ import { SchemaMap } from '@/lib/validation';
 // 設定・プロフィール
 export interface Settings {
   key: string; 
-  value: any;
+  value: unknown;
 }
 
 // 毎日のベースログ
@@ -46,6 +46,7 @@ export interface RegimenHistory {
   type: 'maintenance' | 'tapering' | 'titration';
   description: string;
   isActive: boolean;
+  createdAt: number;
 }
 
 export interface Clinic {

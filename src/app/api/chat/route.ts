@@ -80,11 +80,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ reply: text });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Chat API Error:', error);
     // Return more specific error for debugging
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 }
     );
   }

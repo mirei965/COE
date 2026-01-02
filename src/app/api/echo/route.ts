@@ -83,7 +83,7 @@ ${historyText}
 
     return NextResponse.json({ echo: text });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Echo API Error:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },

@@ -91,7 +91,7 @@ ${logsText}
 
     return NextResponse.json({ report: text });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Report API Error:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },

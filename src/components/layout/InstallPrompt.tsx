@@ -4,16 +4,23 @@ import { useState, useEffect } from 'react';
 import { X, Download, Share } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     // Check if standalone
-    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    setIsStandalone(isStandaloneMode);
+    const isStandaloneMode =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone;
+    setIsStandalone(isStandaloneMode ?? false);
     if (isStandaloneMode) return; // Don't show if already installed
 
     // Check if iOS
@@ -27,9 +34,10 @@ export function InstallPrompt() {
     }
 
     // Android/Chrome event
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    const handler = (e: Event) => {
+      const installEvent = e as BeforeInstallPromptEvent;
+      installEvent.preventDefault();
+      setDeferredPrompt(installEvent);
       setShow(true);
     };
     window.addEventListener('beforeinstallprompt', handler);

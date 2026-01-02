@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useDayLog, useDayLogs } from '@/hooks/useDayLog';
 import { useEventLogs } from '@/hooks/useEventLogs';
 import { useRegimen } from '@/hooks/useRegimen';
-import { Moon, Star, Sparkles } from 'lucide-react';
+import { Moon, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -71,14 +71,7 @@ export function NightReview() {
       if (!response.ok) throw new Error('Generation failed');
       const data = await response.json();
 
-      // Update local state or directly save? Let's just update local state first if we had one for summary, 
-      // but here we are upserting directly. 
-      // Actually, typically we want to show it before saving. But current UI saves immediately on "Save & Exit".
-      // Let's modify behavior: Generate -> Fill Preview -> Save manually.
-      // But preserving existing flow:
-
       return data.echo;
-
     } catch (error) {
       console.error(error);
       return "AI生成に失敗しました。手動で記録してください。";
@@ -88,18 +81,6 @@ export function NightReview() {
   };
 
   const handleSave = async () => {
-    // If echo is not already generated/confirmed by user, generate it now (or use what we have)
-    // For now, let's generate it on the fly if user hasn't seen it, OR strictly rely on the button.
-    // User request implies "Review is Gemini", so let's allow "Auto-generate on save" if empty?
-    // Or better, add a specific "Generate" button in UI.
-
-    // Let's assume we generate it here for simplicity if it's a new entry.
-    // But waiting for API is slow. Let's add a button in the UI instead.
-
-    // Reverting to: Save whatever is in dayLog or generate a simple fallback if needed?
-    // Actually, user wants Gemini to do it. 
-    // Let's trigger generation and THEN save.
-
     let summary = dayLog?.echoSummary;
     if (!summary) {
       summary = await generateEchoWithAI();

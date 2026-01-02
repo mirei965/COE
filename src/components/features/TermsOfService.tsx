@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useSetting } from '@/hooks/useSettings';
 import { Button } from '@/components/ui/Button';
 import { ShieldCheck, ScrollText, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function TermsOfService() {
   const { value: accepted, setValue: setAccepted, isLoading } = useSetting('tos_accepted', false);

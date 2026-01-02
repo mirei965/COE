@@ -122,7 +122,7 @@ export default function SettingsPage() {
 
     try {
       await setRegimen({
-        type: regimenForm.type as any,
+        type: regimenForm.type as 'maintenance' | 'tapering' | 'titration',
         startDate: regimenForm.startDate,
         description: regimenForm.description,
       });
