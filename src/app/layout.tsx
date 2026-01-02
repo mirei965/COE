@@ -31,9 +31,13 @@ export const metadata: Metadata = {
     title: "Coe",
   },
   icons: {
-    icon: "/icon-192x192.png", // fallback
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png' },
+    ],
   },
 };
 
