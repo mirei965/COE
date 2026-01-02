@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { SchemaMap } from '@/lib/validation';
+import { schemaMap } from '@/lib/schemas';
 
 // 設定・プロフィール
 export interface Settings {
@@ -113,7 +113,7 @@ export class CoeDatabase extends Dexie {
           ...downlevelDatabase,
           table: (tableName) => {
             const downlevelTable = downlevelDatabase.table(tableName);
-            const schema = SchemaMap[tableName];
+            const schema = schemaMap[tableName];
             if (!schema) return downlevelTable;
 
             return {
