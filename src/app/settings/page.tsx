@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import Link from 'next/link';
@@ -35,6 +35,14 @@ export default function SettingsPage() {
   const { value: userProfile, setValue: setUserProfile } =
     useSetting<{ name: string }>('userProfile', { name: '美伶' });
   const { setRegimen, activeRegimen } = useRegimen();
+
+  // プロフィール名用ローカルステート（IME入力対策）
+  const [localName, setLocalName] = useState('');
+  useEffect(() => {
+    if (userProfile?.name) {
+      setLocalName(userProfile.name);
+    }
+  }, [userProfile?.name]);
 
   // レジメン入力用State
   const [regimenForm, setRegimenForm] = useState({
@@ -247,8 +255,9 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">お名前</label>
               <Input
-                value={userProfile?.name || ''}
-                onChange={(e) => handleSaveProfile(e.target.value)}
+                value={localName}
+                onChange={(e) => setLocalName(e.target.value)}
+                onBlur={() => handleSaveProfile(localName)}
                 placeholder="名前を入力"
               />
             </div>
@@ -439,9 +448,9 @@ export default function SettingsPage() {
 
                   {/* Bottom Sheet Modal for Clinic Selection */}
                   {showClinicSelector && (
-                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowClinicSelector(false)}>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4" onClick={() => setShowClinicSelector(false)}>
                       <div
-                        className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl p-6 shadow-xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 mx-auto"
+                        className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto"
                         onClick={e => e.stopPropagation()}
                       >
                         <h3 className="text-center font-bold mb-4 text-slate-900 dark:text-slate-100 text-lg">クリニックを選択</h3>

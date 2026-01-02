@@ -33,7 +33,7 @@ const DetailInput = ({ initialValue, onSave, placeholder }: { initialValue: stri
         if (value !== initialValue) onSave(value);
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
           e.currentTarget.blur();
         }
       }}
