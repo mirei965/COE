@@ -448,7 +448,7 @@ export default function SettingsPage() {
 
                   {/* Bottom Sheet Modal for Clinic Selection */}
                   {showClinicSelector && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4" onClick={() => setShowClinicSelector(false)}>
+                    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 pt-24" onClick={() => setShowClinicSelector(false)}>
                       <div
                         className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto"
                         onClick={e => e.stopPropagation()}

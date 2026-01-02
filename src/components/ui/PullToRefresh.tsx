@@ -16,8 +16,8 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
 
   const refreshThreshold = 80; // リフレッシュが発動するピクセル数
 
-  // スクロール位置がトップにあるか確認
-  const isTop = () => window.scrollY === 0;
+  // スクロール位置がトップにあるか確認（バウンス等を考慮して少し余裕を持たせる）
+  const isTop = () => window.scrollY <= 5;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isTop()) {
