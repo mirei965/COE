@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
   // 設定値（プロフィール）
   const { value: userProfile, setValue: setUserProfile } =
-    useSetting<{ name: string }>('userProfile', { name: '美伶' });
+    useSetting<{ name: string }>('userProfile', { name: '' });
   const { setRegimen, activeRegimen } = useRegimen();
 
   // プロフィール名用ローカルステート（IME入力対策）
@@ -448,13 +448,13 @@ export default function SettingsPage() {
 
                   {/* Bottom Sheet Modal for Clinic Selection */}
                   {showClinicSelector && (
-                    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 pt-24" onClick={() => setShowClinicSelector(false)}>
+                    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 pt-4" onClick={() => setShowClinicSelector(false)}>
                       <div
-                        className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto"
+                        className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto max-h-[90vh] overflow-y-auto"
                         onClick={e => e.stopPropagation()}
                       >
                         <h3 className="text-center font-bold mb-4 text-slate-900 dark:text-slate-100 text-lg">クリニックを選択</h3>
-                        <div className="space-y-2 max-h-[50vh] overflow-y-auto mb-4">
+                        <div className="space-y-2 max-h-[40vh] overflow-y-auto mb-4 custom-scrollbar">
                           {clinics?.map(c => (
                             <button
                               key={c.id}
@@ -489,19 +489,19 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-3">
                     <Input
                       type="date"
                       value={newVisit.date}
                       onChange={e => setNewVisit({ ...newVisit, date: e.target.value })}
-                      className="bg-white dark:bg-slate-800 dark:border-slate-700"
+                      className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px]"
                       style={{ colorScheme: 'dark' }}
                     />
                     <Input
                       type="time"
                       value={newVisit.time}
                       onChange={e => setNewVisit({ ...newVisit, time: e.target.value })}
-                      className="bg-white dark:bg-slate-800 dark:border-slate-700"
+                      className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px]"
                       style={{ colorScheme: 'dark' }}
                     />
                   </div>

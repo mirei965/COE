@@ -23,7 +23,8 @@ export const viewport = {
 
 export const metadata: Metadata = {
   title: "Coe™ Powered by .Env",
-  description: "自律神経や服薬を記録するためのPWAヘルスログアプリ",
+  description: "心と身体を整えるための服薬体調管理ログ",
+  keywords: ["自律神経", "ヘルスログ", "服薬管理", "体調管理", "気圧", "頭痛", "メンタルヘルス"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
@@ -40,9 +42,9 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Coe™ - Mentally & Physically",
-    description: "自律神経や服薬を記録するためのPWAヘルスログアプリ",
-    url: "https://coe-app.vercel.app", // 本番URLが決まっていれば変更
+    title: "Coe - 服薬体調管理ログ",
+    description: "日々の体調、気圧、服薬を記録して自律神経をケア。あなたらしいリズムを取り戻すための服薬体調管理ログアプリ。",
+    url: "https://coe-app.vercel.app",
     siteName: "Coe",
     images: [
       {
@@ -57,8 +59,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Coe™ - Mentally & Physically",
-    description: "自律神経や服薬を記録するためのPWAヘルスログアプリ",
+    title: "Coe - 服薬体調管理ログ",
+    description: "日々の体調、気圧、服薬を記録して自律神経をケア。",
     images: ["/head.png"],
   },
 };
