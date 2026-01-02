@@ -21,7 +21,10 @@ const CartesianGridAny = CartesianGrid as any;
 const TooltipAny = Tooltip as any;
 const LineAny = Line as any;
 
-export default function ReportPage() {
+import { Suspense } from 'react';
+
+// Separate the content to use useSearchParams inside Suspense
+function ReportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -85,7 +88,7 @@ export default function ReportPage() {
       .where('id')
       .between(startDateStr, endDateStr, true, true)
       .toArray();
-  }, []);
+  }, [startDateStr, endDateStr]);
 
   const eventLogs = useLiveQuery(async () => {
     const startTs = new Date(startDateStr).getTime();
@@ -94,7 +97,7 @@ export default function ReportPage() {
       .where('timestamp')
       .between(startTs, endTs)
       .toArray();
-  }, []);
+  }, [startDateStr, endDateStr]);
 
   const regimenLogs = useLiveQuery(async () => {
     return await db.regimenHistory
@@ -104,11 +107,7 @@ export default function ReportPage() {
   }, [startDateStr, endDateStr]);
 
   // データ加工 for Graph and Summary
-  // データ加工 for Graph and Summary
   const graphData = dayLogs?.map(log => {
-    // Count symptoms for this specific day
-    // Note: eventLogs currently fetched for the whole range. We need to filter by day.
-    // Optimise: pre-process event logs? Or just filter here (array is small).
     const date = log.id; // YYYY-MM-DD
     const startOfDay = new Date(date).getTime();
     const endOfDay = startOfDay + 86400000;
@@ -125,7 +124,6 @@ export default function ReportPage() {
   });
 
   // Medicine Check
-  // シンプルに頓服利用回数と、症状ランキング
   const symptomCounts: Record<string, number> = {};
   const medCounts: Record<string, number> = {};
 
@@ -266,158 +264,166 @@ export default function ReportPage() {
                 </div>
               </div>
             </div>
-          </div>
-          {/* 1.5 Morning Condition Log (Added request) */}
-          <div className="mt-5 space-y-3 break-inside-avoid mx-2 md:mx-4">
-            <h2 className="text-base font-bold border-l-4 border-amber-500 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">平均コンディション記録</h2>
-            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg p-4 print:bg-slate-50 print:border-slate-300">
-              <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-300 dark:divide-slate-700">
-                <div className="space-y-1">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">睡眠時間 (平均)</p>
-                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(avgSleepMin)}</p>
-                  <p className="text-[10px] text-slate-500">
-                    範囲: {fmtTime(minSleepMin)} 〜 {fmtTime(maxSleepMin)}
-                  </p>
-                  <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">平均睡眠の質</p>
-                    <p className="text-base font-bold text-slate-800 dark:text-slate-100">★{avgSleepQuality}</p>
+
+            {/*Condition Summary*/}
+            <div className="mt-5 space-y-3 break-inside-avoid">
+              <h2 className="text-base font-bold border-l-4 border-amber-500 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">平均コンディション記録</h2>
+              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg p-4 print:bg-slate-50 print:border-slate-300">
+                <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-300 dark:divide-slate-700">
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">睡眠時間 (平均)</p>
+                    <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(avgSleepMin)}</p>
+                    <p className="text-[10px] text-slate-500">
+                      範囲: {fmtTime(minSleepMin)} 〜 {fmtTime(maxSleepMin)}
+                    </p>
+                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">平均睡眠の質</p>
+                      <p className="text-base font-bold text-slate-800 dark:text-slate-100">★{avgSleepQuality}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1 flex flex-col justify-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">平均覚醒度</p>
+                    <p className="text-2xl font-bold text-amber-500">{avgArousal}<span className="text-sm text-slate-400"> / 5</span></p>
+                  </div>
+                  <div className="space-y-1 flex flex-col justify-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">平均症状強度</p>
+                    <p className="text-2xl font-bold text-rose-500">{avgSymptomSeverity}<span className="text-sm text-slate-400"> / 3</span></p>
+                    <p className="text-[10px] text-slate-500">記録された症状の平均</p>
                   </div>
                 </div>
-                <div className="space-y-1 flex flex-col justify-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">平均覚醒度</p>
-                  <p className="text-2xl font-bold text-amber-500">{avgArousal}<span className="text-sm text-slate-400"> / 5</span></p>
-                </div>
-                <div className="space-y-1 flex flex-col justify-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">平均症状強度</p>
-                  <p className="text-2xl font-bold text-rose-500">{avgSymptomSeverity}<span className="text-sm text-slate-400"> / 3</span></p>
-                  <p className="text-[10px] text-slate-500">記録された症状の平均</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 break-inside-avoid mx-2 md:mx-4 mt-2">
-            {/* 2. Medication */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-baseline mb-1 border-l-4 border-emerald-600 pl-2">
-                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 print:text-slate-900">服薬・減薬状況</h2>
-                {activeRegimen && (
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 max-w-[50%] truncate block">
-                    現在: {activeRegimen.description}
-                  </span>
-                )}
-              </div>
-
-              {regimenLogs && regimenLogs.length > 0 && (
-                <div className="mb-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded border border-emerald-100 dark:border-emerald-800 text-xs text-slate-700 dark:text-slate-300 print:text-slate-800 print:border-emerald-200">
-                  <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1 print:text-emerald-700">期間中の変更:</p>
-                  <ul className="space-y-1">
-                    {regimenLogs.map(r => (
-                      <li key={r.id}>
-                        <span className="font-mono mr-2 opacity-70">{r.startDate.slice(5)}</span>
-                        <span className="font-bold mr-1">[{r.type === 'tapering' ? '減薬' : r.type === 'titration' ? '増薬' : '維持'}]</span>
-                        {r.description}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 print:bg-white print:border-slate-300">
-                {Object.keys(medCounts).length > 0 ? (
-                  <ul className="space-y-1 text-xs text-slate-800 dark:text-slate-200 print:text-slate-800">
-                    {Object.entries(medCounts).map(([name, count]) => (
-                      <li key={name} className="flex justify-between items-center border-b border-slate-300 dark:border-slate-700 pb-1 last:border-0 print:border-slate-300">
-                        <span>{name}</span>
-                        <div className="flex items-end gap-1">
-                          <span className="font-bold">{count}回</span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 scale-90 origin-right whitespace-nowrap">
-                            (Avg {(count / periodDays).toFixed(1)}/日)
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-slate-500 dark:text-slate-400 text-xs py-2 text-center">記録なし</p>
-                )}
               </div>
             </div>
 
-            {/* 3. Symptoms */}
-            <div className="space-y-2">
-              <h2 className="text-base font-bold border-l-4 border-rose-500 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">主な症状</h2>
-              <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 print:bg-white print:border-slate-300">
-                {topSymptoms.length > 0 ? (
-                  <ul className="space-y-1 text-xs text-slate-800 dark:text-slate-200 print:text-slate-800">
-                    {topSymptoms.map(([name, count], i) => (
-                      <li key={name} className="flex justify-between items-center border-b border-slate-300 dark:border-slate-700 pb-1 last:border-0 print:border-slate-300">
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 flex items-center justify-center bg-white dark:bg-slate-700 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-200 border border-slate-300 dark:border-slate-600 print:bg-white print:text-slate-600 print:border-slate-300">{i + 1}</span>
-                          {name}
-                        </span>
-                        <span className="font-bold">{count}回</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-slate-500 dark:text-slate-400 text-xs py-2 text-center">記録なし</p>
-                )}
-              </div>
-            </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4 break-inside-avoid mt-2 border-t border-slate-100 dark:border-slate-800 pt-4">
+              {/* 2. Medication */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline mb-1 border-l-4 border-emerald-600 pl-2">
+                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 print:text-slate-900">服薬・減薬状況</h2>
+                </div>
 
-          {/* 4. AI Report Summary */}
-          <div className="space-y-2 mt-3 break-inside-avoid mx-2 md:mx-4">
-            <div className="flex items-center justify-between border-l-4 border-indigo-500 pl-2">
-              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 print:text-slate-900">AIサマリー</h2>
-              {!isGenerating && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={generateDoctorReport}
-                  className="h-7 text-xs print:hidden border-indigo-200 hover:bg-indigo-50 text-indigo-600"
-                >
-                  {aiReport ? (
-                    <>
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      再生成
-                    </>
+                {regimenLogs && regimenLogs.length > 0 && (
+                  <div className="mb-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded border border-emerald-100 dark:border-emerald-800 text-xs text-slate-700 dark:text-slate-300 print:text-slate-800 print:border-emerald-200">
+                    <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1 print:text-emerald-700">期間中の変更:</p>
+                    <ul className="space-y-1">
+                      {regimenLogs.map(r => (
+                        <li key={r.id}>
+                          <span className="font-mono mr-2 opacity-70">{r.startDate.slice(5)}</span>
+                          <span className="font-bold mr-1">[{r.type === 'tapering' ? '減薬' : r.type === 'titration' ? '増薬' : '維持'}]</span>
+                          {r.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 print:bg-white print:border-slate-300">
+                  {Object.keys(medCounts).length > 0 ? (
+                    <ul className="space-y-1 text-xs text-slate-800 dark:text-slate-200 print:text-slate-800">
+                      {Object.entries(medCounts).map(([name, count]) => (
+                        <li key={name} className="flex justify-between items-center border-b border-slate-300 dark:border-slate-700 pb-1 last:border-0 print:border-slate-300">
+                          <span>{name}</span>
+                          <div className="flex items-end gap-1">
+                            <span className="font-bold">{count}回</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 scale-90 origin-right whitespace-nowrap">
+                              (Avg {(count / periodDays).toFixed(1)}/日)
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   ) : (
-                    <>
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      生成する
-                    </>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs py-2 text-center">記録なし</p>
                   )}
-                </Button>
-              )}
+                </div>
+              </div>
+
+              {/* 3. Symptoms */}
+              <div className="space-y-2">
+                <h2 className="text-base font-bold border-l-4 border-rose-500 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">主な症状</h2>
+                <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 print:bg-white print:border-slate-300">
+                  {topSymptoms.length > 0 ? (
+                    <ul className="space-y-1 text-xs text-slate-800 dark:text-slate-200 print:text-slate-800">
+                      {topSymptoms.map(([name, count], i) => (
+                        <li key={name} className="flex justify-between items-center border-b border-slate-300 dark:border-slate-700 pb-1 last:border-0 print:border-slate-300">
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 flex items-center justify-center bg-white dark:bg-slate-700 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-200 border border-slate-300 dark:border-slate-600 print:bg-white print:text-slate-600 print:border-slate-300">{i + 1}</span>
+                            {name}
+                          </span>
+                          <span className="font-bold">{count}回</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-slate-500 dark:text-slate-400 text-xs py-2 text-center">記録なし</p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-4 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-800 dark:text-slate-200 print:bg-white print:border-slate-300 min-h-[150px]">
-              {isGenerating ? (
-                <div className="flex flex-col items-center justify-center py-8 text-slate-500 gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>医師への報告内容をまとめています...</span>
-                </div>
-              ) : aiReport ? (
-                <div className="prose prose-sm prose-slate dark:prose-invert max-w-none prose-headings:text-sm prose-headings:font-bold prose-p:my-1 prose-ul:my-1 prose-li:my-0">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiReport}</ReactMarkdown>
-                </div>
-              ) : (
-                <div className="text-center text-slate-400 py-6 italic">
-                  ボタンを押すと、期間内の記録から医師向けの要約レポートを作成します。
-                </div>
-              )}
-            </div>
-          </div>
+            {/* 4. AI Report Summary */}
+            <div className="space-y-2 mt-3 break-inside-avoid">
+              <div className="flex items-center justify-between border-l-4 border-indigo-500 pl-2">
+                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 print:text-slate-900">AIサマリー</h2>
+                {!isGenerating && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={generateDoctorReport}
+                    className="h-7 text-xs print:hidden border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+                  >
+                    {aiReport ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        再生成
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        生成する
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
 
-          {/* Footer Area for Doctor Notes */}
-          <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-300 dark:border-slate-700 break-inside-avoid print:border-slate-300 mx-2 md:mx-4">
-            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2 print:text-slate-400">医師メモ欄</h3>
-            <div className="h-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 print:bg-slate-50/50 print:border-slate-200"></div>
+              <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-4 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-800 dark:text-slate-200 print:bg-white print:border-slate-300 min-h-[150px]">
+                {isGenerating ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-500 gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>医師への報告内容をまとめています...</span>
+                  </div>
+                ) : aiReport ? (
+                  <div className="prose prose-sm prose-slate dark:prose-invert max-w-none prose-headings:text-sm prose-headings:font-bold prose-p:my-1 prose-ul:my-1 prose-li:my-0">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiReport}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="text-center text-slate-400 py-6 italic">
+                    ボタンを押すと、期間内の記録から医師向けの要約レポートを作成します。
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Area for Doctor Notes */}
+            <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-300 dark:border-slate-700 break-inside-avoid print:border-slate-300">
+              <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2 print:text-slate-400">医師メモ欄</h3>
+              <div className="h-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 print:bg-slate-50/50 print:border-slate-200"></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ReportPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+      </div>
+    }>
+      <ReportContent />
+    </Suspense>
   );
 }
