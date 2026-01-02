@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ChevronLeft, ChevronRight, Trash2, Edit2, Clock, Check, X, MapPin, Calendar as CalendarIcon, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Edit2, Clock, Check, X, MapPin, Calendar as CalendarIcon, CheckCircle2, Circle, Plus, Pill, Zap } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type EventLog } from '@/db/db';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ export default function CalendarPage() {
     const days: { date: Date; isCurrentMonth: boolean }[] = [];
 
     // 前月分
+    // 前月分: 0からstartOffset-1まで逆順で埋める
     for (let i = startOffset - 1; i >= 0; i--) {
       days.push({ date: new Date(year, month, -i), isCurrentMonth: false });
     }
@@ -79,6 +81,9 @@ export default function CalendarPage() {
     return await db.dayLogs.get(selectedDateStr);
   }, [selectedDateStr]);
 
+  // Medicines for selection
+  const medicines = useLiveQuery(() => db.medicines.toArray());
+
   // Clinic Data Fetching
   const clinics = useLiveQuery(() => db.clinics.toArray());
 
@@ -119,6 +124,12 @@ export default function CalendarPage() {
     }
   };
 
+  // Add Log State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newLogType, setNewLogType] = useState<'symptom' | 'medicine'>('symptom');
+  const [newLogName, setNewLogName] = useState('');
+  const [newLogTime, setNewLogTime] = useState('12:00');
+
   const startEdit = (log: EventLog) => {
     if (!log.id) return;
     const date = new Date(log.timestamp);
@@ -138,6 +149,24 @@ export default function CalendarPage() {
       timestamp: newDate.getTime()
     });
     setEditingLogId(null);
+  };
+
+  const handleAddLog = async () => {
+    if (!newLogName) return;
+    const [hours, mins] = newLogTime.split(':').map(Number);
+    const logDate = new Date(selectedDate);
+    logDate.setHours(hours, mins);
+
+    await db.eventLogs.add({
+      date: selectedDateStr,
+      type: newLogType,
+      name: newLogName,
+      severity: 1,
+      timestamp: logDate.getTime(),
+    });
+
+    setShowAddModal(false);
+    setNewLogName('');
   };
 
   const toggleVisitComplete = async (visitId: number, current: boolean) => {
@@ -480,10 +509,103 @@ export default function CalendarPage() {
                   <p className="text-sm">記録はありません</p>
                 </div>
               )}
+
+              {/* Add Log Button Block */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm">
+                <Button onClick={() => setShowAddModal(true)} className="w-full gap-2 font-bold shadow-md">
+                  <Plus className="h-4 w-4" /> この日の記録を追加
+                </Button>
+              </div>
             </div> {/* Closing divide-y div */}
           </CardContent>
         </Card>
       </div>
+      {/* Add Log Modal */}
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowAddModal(false)}>
+          <div
+            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-center font-bold mb-6 text-slate-900 dark:text-slate-100 flex items-center justify-center gap-2">
+              <span className="text-lg">{selectedDate.getMonth() + 1}/{selectedDate.getDate()}</span>
+              <span className="text-slate-400 font-normal text-sm">に記録を追加</span>
+            </h3>
+
+            <div className="space-y-4">
+              {/* Type Selection */}
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setNewLogType('symptom')}
+                  className={cn(
+                    "flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all",
+                    newLogType === 'symptom' ? "bg-white dark:bg-slate-700 shadow text-red-600 dark:text-red-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                  )}
+                >
+                  <Zap className="h-4 w-4" /> 症状
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewLogType('medicine')}
+                  className={cn(
+                    "flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all",
+                    newLogType === 'medicine' ? "bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                  )}
+                >
+                  <Pill className="h-4 w-4" /> お薬
+                </button>
+              </div>
+
+              {/* Name Input / Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">内容</label>
+                {newLogType === 'medicine' && medicines && medicines.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {medicines.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => setNewLogName(m.name)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-bold border transition-colors",
+                          newLogName === m.name
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                        )}
+                      >
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <Input
+                  placeholder={newLogType === 'symptom' ? "頭痛, めまい, etc." : "薬の名前"}
+                  value={newLogName}
+                  onChange={e => setNewLogName(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800"
+                />
+              </div>
+
+              {/* Time Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 ml-1">時間</label>
+                <Input
+                  type="time"
+                  value={newLogTime}
+                  onChange={e => setNewLogTime(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+
+              <Button className="w-full h-12 mt-4 font-bold" onClick={handleAddLog} disabled={!newLogName}>
+                追加する
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </PageLayout>
   );
 }
