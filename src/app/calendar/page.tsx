@@ -496,7 +496,7 @@ export default function CalendarPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); startEdit(log); }}>
                             <Edit2 className="h-4 w-4 text-slate-400" />
                           </Button>
