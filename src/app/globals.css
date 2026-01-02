@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Custom Animation Classes for Orb */
+@keyframes echoFloat {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translateY(-8px) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.95;
+  }
+}
+
+.echo-orb {
+  animation: echoFloat 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #334155;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+.dark {
+  --background: #0b1221;
+  --foreground: #e2e8f0;
+}
+
+body {
+  /* Rich Gradient Background */
+  /* Light: Refreshing Teal morning (White -> Teal-50 -> Teal-100) */
+  background: linear-gradient(to bottom, #ffffff, #f0fdfa, #ccfbf1) !important;
+  min-height: 100vh;
+
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  /* Dark: Aurora Borealis Effect */
+  background-color: #020617; /* Deepest Void Black basis */
+  background-image: 
+    /* 1. Main Cosmic Glow (Top Center - Deep Blue) */ radial-gradient(
+      circle at 50% 0%,
+      #172554 0%,
+      transparent 60%
+    ),
+    /* 2. Aurora Teal/Green (Top Left - Subtle Shimmer) */
+      radial-gradient(
+        ellipse at 20% 0%,
+        rgba(45, 212, 191, 0.15) 0%,
+        transparent 50%
+      ),
+    /* 3. Cosmic Purple (Top Right - Mystery) */
+      radial-gradient(
+        ellipse at 80% 0%,
+        rgba(129, 140, 248, 0.15) 0%,
+        transparent 50%
+      ),
+    /* 4. Bottom Deep Fade (Ensures bottom is readable black) */
+      linear-gradient(to bottom, transparent 30%, #020617 90%) !important;
+
+  background-attachment: fixed !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+}
