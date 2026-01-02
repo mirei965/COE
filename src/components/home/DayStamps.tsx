@@ -248,7 +248,7 @@ export function DayStamps() {
       <CardContent className="space-y-6">
         {isEditing && (
           <Button
-            className="fixed bottom-24 right-6 z-[70] rounded-full w-12 h-12 shadow-xl bg-brand-500 hover:bg-brand-600 text-white animate-in zoom-in duration-200"
+            className="fixed bottom-24 right-6 z-[70] rounded-full w-12 h-12 shadow-xl animate-in zoom-in duration-200"
             onClick={() => setIsEditing(false)}
           >
             <Check className="h-6 w-6" />

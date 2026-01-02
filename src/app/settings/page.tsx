@@ -335,7 +335,7 @@ export default function SettingsPage() {
 
                     <div className="flex gap-3 pt-2">
                       <Button variant="outline" type="button" className="flex-1 h-12 rounded-xl" onClick={() => setShowRegimenModal(false)}>キャンセル</Button>
-                      <Button type="submit" className="flex-1 h-12 rounded-xl font-bold bg-brand-600 hover:bg-brand-700 text-white">
+                      <Button type="submit" className="flex-1 h-12 rounded-xl font-bold">
                         設定を保存
                       </Button>
                     </div>

@@ -17,7 +17,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'disabled:pointer-events-none disabled:opacity-50',
           {
             // Primary variant
-            'bg-brand-400 text-white hover:bg-brand-400/90 dark:bg-brand-400 dark:hover:bg-brand-400/90':
+            'bg-brand-400 text-white hover:bg-brand-400/90 dark:bg-cyan-500 dark:hover:bg-cyan-400':
               variant === 'primary',
             // Secondary variant
             'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700':
