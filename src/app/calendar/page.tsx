@@ -13,8 +13,15 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 
 export default function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // Normalize a date to local midnight (00:00:00.000)
+  const getStartOfDay = (d: Date) => {
+    const newD = new Date(d);
+    newD.setHours(0, 0, 0, 0);
+    return newD;
+  };
+
+  const [currentDate, setCurrentDate] = useState(() => getStartOfDay(new Date()));
+  const [selectedDate, setSelectedDate] = useState(() => getStartOfDay(new Date()));
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{ name: string, time: string }>({ name: '', time: '' });
 
@@ -64,8 +71,8 @@ export default function CalendarPage() {
   // 選択した日のログ取得
   const selectedDateStr = toLocalDateStr(selectedDate);
 
-  // Date.now() timestamp query range
-  const startTs = new Date(selectedDateStr).getTime();
+  // Use correctly normalized timestamp range based on local time
+  const startTs = selectedDate.getTime();
   const endTs = startTs + 86400000;
 
   const logs = useLiveQuery(async () => {
@@ -223,9 +230,9 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_350px] gap-6 max-w-6xl mx-auto h-[calc(100vh-100px)]">
+      <div className="grid lg:grid-cols-[1fr_350px] gap-6 max-w-6xl mx-auto lg:h-[calc(100vh-100px)] h-auto">
         {/* Calendar Section */}
-        <Card className="h-full flex flex-col">
+        <Card className="lg:h-full h-auto flex flex-col min-h-[400px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="text-xl font-bold flex items-center gap-2">
               {currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月
@@ -247,7 +254,7 @@ export default function CalendarPage() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1 h-full auto-rows-fr">
+            <div className="grid grid-cols-7 gap-1 lg:h-full h-auto lg:auto-rows-fr auto-rows-auto">
               {calendarDays.map((d, i) => {
                 const dateStr = toLocalDateStr(d.date);
                 const isSelected = d.date.toDateString() === selectedDate.toDateString();
@@ -308,7 +315,7 @@ export default function CalendarPage() {
         </Card>
 
         {/* Logs Section */}
-        <Card className="h-full flex flex-col overflow-hidden">
+        <Card className="lg:h-full h-auto flex flex-col lg:overflow-hidden min-h-[200px]">
           <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
             <CardTitle className="text-lg">
               {selectedDate.getMonth() + 1}月 {selectedDate.getDate()}日の記録
@@ -510,14 +517,14 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* Add Log Button Block */}
-              <div className="p-4 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm">
-                <Button onClick={() => setShowAddModal(true)} className="w-full gap-2 font-bold shadow-md">
-                  <Plus className="h-4 w-4" /> この日の記録を追加
-                </Button>
-              </div>
             </div> {/* Closing divide-y div */}
           </CardContent>
+          {/* Add Log Button Block - Moved outside scroll area */}
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-black/80 backdrop-blur-sm">
+            <Button onClick={() => setShowAddModal(true)} className="w-full gap-2 font-bold shadow-md">
+              <Plus className="h-4 w-4" /> この日の記録を追加
+            </Button>
+          </div>
         </Card>
       </div>
       {/* Add Log Modal */}
