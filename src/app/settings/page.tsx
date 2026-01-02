@@ -436,7 +436,7 @@ export default function SettingsPage() {
                 {(!visits || visits.length === 0) && <span className="text-sm text-slate-400">予定なし</span>}
               </div>
 
-              <div className="grid gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 w-full">
                 <span className="text-sm font-bold text-slate-500">
                   予定を追加
                   <span className="text-xs font-normal text-slate-400 ml-2">（過去の日付で前回の通院日が登録できます）</span>
@@ -458,7 +458,7 @@ export default function SettingsPage() {
 
                   {/* Bottom Sheet Modal for Clinic Selection */}
                   {showClinicSelector && (
-                    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 pt-4" onClick={() => setShowClinicSelector(false)}>
+                    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4 pt-[700px]" onClick={() => setShowClinicSelector(false)}>
                       <div
                         className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 mx-auto max-h-[90vh] overflow-y-auto"
                         onClick={e => e.stopPropagation()}
@@ -499,28 +499,28 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  <div className="flex flex-col gap-3">
-                    <div className="relative w-full">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="flex flex-col gap-3 min-w-0 w-full">
+                    <div className="relative w-full min-w-0">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
                       </div>
                       <Input
                         type="date"
                         value={newVisit.date}
                         onChange={e => setNewVisit({ ...newVisit, date: e.target.value })}
-                        className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px] pl-10 w-full max-w-full"
+                        className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px] pl-10 w-full min-w-0"
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
-                    <div className="relative w-full">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="relative w-full min-w-0">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                       </div>
                       <Input
                         type="time"
                         value={newVisit.time}
                         onChange={e => setNewVisit({ ...newVisit, time: e.target.value })}
-                        className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px] pl-10 w-full max-w-full"
+                        className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px] pl-10 w-full min-w-0"
                         style={{ colorScheme: 'dark' }}
                       />
                     </div>
