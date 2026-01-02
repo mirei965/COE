@@ -13,7 +13,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 
 const DEFAULT_STAMPS = {
   symptom: ['頭痛', 'めまい', '耳鳴り', '気分の落ち込み', '不安感'],
-  medicine: [],
+  medicine: ['薬A', '薬B', '薬C'],
   trigger: ['低気圧', '睡眠不足', 'ストレス', '人混み', '音', '光'],
   food: ['水', 'カフェイン', 'アルコール'],
 };
