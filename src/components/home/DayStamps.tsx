@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useEventLogs } from '@/hooks/useEventLogs';
@@ -60,6 +60,27 @@ export function DayStamps() {
   const { value: meds, setValue: setMeds } = useSetting<string[]>('stamps_medicine', DEFAULT_STAMPS.medicine);
   const { value: triggers, setValue: setTriggers } = useSetting<string[]>('stamps_trigger', DEFAULT_STAMPS.trigger);
   const { value: foods, setValue: setFoods } = useSetting<string[]>('stamps_food', DEFAULT_STAMPS.food);
+
+  // Sync medicines from DB to Quick Log stamps
+  useEffect(() => {
+    if (!medicines || !meds) return;
+
+    const registeredNames = medicines.map(m => m.name);
+    // If no medicines registered, do nothing (keep defaults or user settings)
+    if (registeredNames.length === 0) return;
+
+    const defaultPlaceholders = ['薬A', '薬B', '薬C'];
+
+    // Logic: Keep custom items (those that are NOT default placeholders AND NOT already in registered list)
+    // Then prepend registered items.
+    const customItems = meds.filter(m => !defaultPlaceholders.includes(m) && !registeredNames.includes(m));
+    const newMedsList = [...registeredNames, ...customItems];
+
+    // Update only if different to avoid infinite loops
+    if (JSON.stringify(newMedsList) !== JSON.stringify(meds)) {
+      setMeds(newMedsList);
+    }
+  }, [medicines, meds, setMeds]);
 
   // Detailed settings for items (medication dosage, food amount, etc.)
   type ItemDetail = { status?: 'none' | 'decrease' | 'increase' | 'new' | 'stop'; dosage: string; unit?: string };

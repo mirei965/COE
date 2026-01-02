@@ -181,7 +181,7 @@ export default function SettingsPage() {
         dailyDose: newMed.type === 'regular' ? newMed.dailyDose : undefined,
         updatedAt: Date.now(),
       });
-      setNewMed({ name: '', type: 'regular', dosage: '', dailyDose: '' });
+      setNewMed(prev => ({ ...prev, type: 'regular', dosage: '', dailyDose: '' }));
     } catch (error) {
       console.error('Validation error:', error);
     }
