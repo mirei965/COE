@@ -172,7 +172,7 @@ export default function SettingsPage() {
         exportedAt: new Date().toISOString(),
       };
 
-      const blob = new Blob([JSON.stringify(allData, null, 2)], {
+      const blob = new Blob(['\uFEFF' + JSON.stringify(allData, null, 2)], {
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
@@ -220,7 +220,10 @@ export default function SettingsPage() {
             if (data.eventLogs) {
               const sanitizedEventLogs = data.eventLogs.map((log: any) => ({
                 ...log,
-                timestamp: log.timestamp || new Date(log.date).getTime(),
+                name: log.name || '記録なし',
+                type: (['symptom', 'medicine', 'trigger', 'food'].includes(log.type)) ? log.type : 'symptom',
+                timestamp: log.timestamp || new Date(log.date || Date.now()).getTime(),
+                date: log.date || new Date().toISOString().split('T')[0],
                 severity: (log.severity === 1 || log.severity === 2 || log.severity === 3) ? log.severity : 1,
               }));
               await db.eventLogs.bulkPut(sanitizedEventLogs);
@@ -229,6 +232,9 @@ export default function SettingsPage() {
             if (data.regimenHistory) {
               const sanitizedRegimens = data.regimenHistory.map((regimen: any) => ({
                 ...regimen,
+                type: (['maintenance', 'tapering', 'titration'].includes(regimen.type)) ? regimen.type : 'maintenance',
+                description: regimen.description || '説明なし',
+                isActive: typeof regimen.isActive === 'boolean' ? regimen.isActive : false,
                 startDate: regimen.startDate || new Date().toISOString().split('T')[0],
               }));
               await db.regimenHistory.bulkPut(sanitizedRegimens);
@@ -237,6 +243,7 @@ export default function SettingsPage() {
             if (data.medicines) {
               const sanitizedMedicines = data.medicines.map((med: any) => ({
                 ...med,
+                name: med.name || '名称未設定',
                 type: (med.type === 'regular' || med.type === 'prn') ? med.type : 'regular',
               }));
               await db.medicines.bulkPut(sanitizedMedicines);
