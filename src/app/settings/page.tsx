@@ -53,7 +53,12 @@ export default function SettingsPage() {
 
   // Clinic States
   const [newClinicName, setNewClinicName] = useState('');
-  const [newVisit, setNewVisit] = useState({ date: '', time: '', note: '', clinicId: 0 });
+  const [newVisit, setNewVisit] = useState({
+    date: new Date().toISOString().split('T')[0],
+    time: '10:00',
+    note: '',
+    clinicId: 0
+  });
   const [showClinicSelector, setShowClinicSelector] = useState(false);
   const [showRegimenModal, setShowRegimenModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -91,7 +96,12 @@ export default function SettingsPage() {
       note: newVisit.note,
       isCompleted: false
     });
-    setNewVisit({ date: '', time: '', note: '', clinicId: 0 });
+    setNewVisit({
+      date: new Date().toISOString().split('T')[0],
+      time: '10:00',
+      note: '',
+      clinicId: 0
+    });
   };
 
   const handleDeleteVisit = async (id: number) => {
@@ -490,20 +500,30 @@ export default function SettingsPage() {
                   )}
 
                   <div className="flex flex-col gap-3">
-                    <Input
-                      type="date"
-                      value={newVisit.date}
-                      onChange={e => setNewVisit({ ...newVisit, date: e.target.value })}
-                      className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px]"
-                      style={{ colorScheme: 'dark' }}
-                    />
-                    <Input
-                      type="time"
-                      value={newVisit.time}
-                      onChange={e => setNewVisit({ ...newVisit, time: e.target.value })}
-                      className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px]"
-                      style={{ colorScheme: 'dark' }}
-                    />
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                      </div>
+                      <Input
+                        type="date"
+                        value={newVisit.date}
+                        onChange={e => setNewVisit({ ...newVisit, date: e.target.value })}
+                        className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px] pl-10"
+                        style={{ colorScheme: 'dark' }}
+                      />
+                    </div>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                      </div>
+                      <Input
+                        type="time"
+                        value={newVisit.time}
+                        onChange={e => setNewVisit({ ...newVisit, time: e.target.value })}
+                        className="bg-white dark:bg-slate-800 dark:border-slate-700 min-h-[44px] pl-10"
+                        style={{ colorScheme: 'dark' }}
+                      />
+                    </div>
                   </div>
 
                   <Input
