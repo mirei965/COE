@@ -267,20 +267,6 @@ export function DayStamps() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
-        {isEditing && (
-          <Button
-            className="fixed bottom-24 right-6 z-[70] rounded-full w-12 h-12 shadow-xl animate-in zoom-in duration-200"
-            onClick={() => setIsEditing(false)}
-          >
-            <Check className="h-6 w-6" />
-          </Button>
-        )}
-        {feedback && (
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-brand-500/90 text-white px-6 py-2 rounded-full text-sm shadow-2xl animate-fade-in-up z-50 backdrop-blur-md">
-            {feedback}
-          </div>
-        )}
-
         <div className="grid gap-6">
           {categories.map((cat) => (
             <div key={cat.key} className="space-y-2">
@@ -439,6 +425,17 @@ export function DayStamps() {
             </div>
           ))}
         </div>
+
+        {isEditing && (
+          <div className="sticky bottom-6 flex justify-end pb-2 pr-2 pointer-events-none">
+            <Button
+              className="rounded-full w-12 h-12 shadow-xl animate-in zoom-in duration-200 pointer-events-auto"
+              onClick={() => setIsEditing(false)}
+            >
+              <Check className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

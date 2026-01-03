@@ -206,29 +206,7 @@ export default function CalendarPage() {
 
   return (
     <PageLayout title="カレンダー" headerActions={<ThemeToggle />}>
-      {/* Delete Confirmation Modal */}
-      {deleteTargetId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 dark:bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-sm w-full p-6 border border-slate-100 dark:border-slate-800 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">ログを削除しますか？</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-              この操作は取り消せません。本当に削除してもよろしいですか？
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setDeleteTargetId(null)}>
-                キャンセル
-              </Button>
-              <Button
-                variant="outline"
-                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-900"
-                onClick={executeDelete}
-              >
-                削除する
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Modal moved to Portal */}
 
       <div className="grid lg:grid-cols-[1fr_350px] gap-6 max-w-6xl mx-auto lg:h-[calc(100vh-100px)] h-auto">
         {/* Calendar Section */}
@@ -527,6 +505,34 @@ export default function CalendarPage() {
           </div>
         </Card>
       </div>
+      {/* Delete Confirmation Modal Portal */}
+      {deleteTargetId && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setDeleteTargetId(null)}>
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-sm w-full p-6 border border-slate-100 dark:border-slate-800 transform transition-all scale-100 animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">ログを削除しますか？</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+              この操作は取り消せません。本当に削除してもよろしいですか？
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setDeleteTargetId(null)}>
+                キャンセル
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-900"
+                onClick={executeDelete}
+              >
+                削除する
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Add Log Modal */}
       {showAddModal && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowAddModal(false)}>
