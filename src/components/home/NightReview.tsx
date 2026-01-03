@@ -9,17 +9,15 @@ import { useEventLogs } from '@/hooks/useEventLogs';
 import { useRegimen } from '@/hooks/useRegimen';
 import { Moon, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getLocalISOString, getPastDate } from '@/lib/date';
 import ReactMarkdown from 'react-markdown';
 
 export function NightReview() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalISOString();
   const { dayLog, upsertDayLog } = useDayLog(today);
 
   // Fetch recent history for AI context (past 7 days)
-  const todayObj = new Date();
-  const pastObj = new Date(todayObj);
-  pastObj.setDate(todayObj.getDate() - 7);
-  const startDate = pastObj.toISOString().split('T')[0];
+  const startDate = getPastDate(7);
   const { dayLogs: recentLogs } = useDayLogs(startDate, today);
 
   const { eventLogs } = useEventLogs(today);

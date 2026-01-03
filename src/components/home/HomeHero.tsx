@@ -5,6 +5,7 @@ import { useRegimen } from '@/hooks/useRegimen';
 import { useSetting } from '@/hooks/useSettings';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { getLocalISOString } from '@/lib/date';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CalendarDays, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -26,7 +27,7 @@ export function HomeHero() {
   const greeting = hour < 12 ? 'おはようございます🐓' : hour < 18 ? 'こんにちは☀️' : 'こんばんは🌙';
 
   // Upcoming Visits (Next 3)
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalISOString();
   const upcomingVisits = useLiveQuery(async () => {
     try {
       // Fetch all and filter in JS to avoid potential IDBKeyRange errors

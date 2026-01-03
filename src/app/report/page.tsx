@@ -11,6 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { getLocalISOString, getPastDate } from '@/lib/date';
 
 // Fix for Recharts type errors in Next.js/TypeScript
 const ResponsiveContainerAny = ResponsiveContainer as any;
@@ -37,12 +38,8 @@ function ReportContent() {
 
   // Period State (Default: Last 14 days)
   const today = new Date();
-  const [startDateStr, setStartDateStr] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14);
-    return d.toISOString().split('T')[0];
-  });
-  const [endDateStr, setEndDateStr] = useState(() => new Date().toISOString().split('T')[0]);
+  const [startDateStr, setStartDateStr] = useState(() => getPastDate(14));
+  const [endDateStr, setEndDateStr] = useState(() => getLocalISOString());
 
   // Hooks
   const { activeRegimen } = useRegimen();

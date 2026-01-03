@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Zap, Pill, Activity, TrendingUp, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useMemo } from 'react';
+import { getPastDate } from '@/lib/date';
 
 export default function StatsPage() {
   const router = useRouter();
@@ -22,9 +23,7 @@ export default function StatsPage() {
   const today = new Date();
   const dates: string[] = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    dates.push(d.toISOString().split('T')[0]);
+    dates.push(getPastDate(i));
   }
 
   const sevenDaysAgo = new Date(today);

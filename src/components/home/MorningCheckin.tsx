@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { Switch } from '@/components/ui/Switch';
 import { useDayLog } from '@/hooks/useDayLog';
 import { cn } from '@/lib/utils';
+import { getLocalISOString } from '@/lib/date';
 import { Sun } from 'lucide-react';
 
 export function MorningCheckin() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalISOString();
   const { dayLog, upsertDayLog } = useDayLog(today);
   const [isOpen, setIsOpen] = useState(true);
 

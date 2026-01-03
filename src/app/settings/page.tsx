@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/Switch';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { cn } from '@/lib/utils';
+import { getLocalISOString } from '@/lib/date';
 import { z } from 'zod';
 
 // Zod schemas for validation
@@ -43,14 +44,14 @@ export default function SettingsPage() {
     startDate: string;
   }>({
     type: 'maintenance',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: getLocalISOString(),
   });
 
   // Clinic Visit State
   const [newClinicName, setNewClinicName] = useState('');
   const [newVisit, setNewVisit] = useState({
     clinicId: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalISOString(),
     time: '',
     note: ''
   });
@@ -154,7 +155,7 @@ export default function SettingsPage() {
       note: newVisit.note,
       isCompleted: false
     });
-    setNewVisit({ clinicId: 0, date: new Date().toISOString().split('T')[0], time: '', note: '' });
+    setNewVisit({ clinicId: 0, date: getLocalISOString(), time: '', note: '' });
   };
 
   const handleDeleteVisit = async (id: number) => {
@@ -214,7 +215,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `coe-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `coe-backup-${getLocalISOString()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -259,7 +260,7 @@ export default function SettingsPage() {
                 name: log.name || '記録なし',
                 type: (['symptom', 'medicine', 'trigger', 'food'].includes(log.type)) ? log.type : 'symptom',
                 timestamp: log.timestamp || new Date(log.date || Date.now()).getTime(),
-                date: log.date || new Date().toISOString().split('T')[0],
+                date: log.date || getLocalISOString(),
                 severity: (log.severity === 1 || log.severity === 2 || log.severity === 3) ? log.severity : 1,
               }));
               await db.eventLogs.bulkPut(sanitizedEventLogs);
@@ -271,7 +272,7 @@ export default function SettingsPage() {
                 type: (['maintenance', 'tapering', 'titration'].includes(regimen.type)) ? regimen.type : 'maintenance',
                 description: regimen.description || '説明なし',
                 isActive: typeof regimen.isActive === 'boolean' ? regimen.isActive : false,
-                startDate: regimen.startDate || new Date().toISOString().split('T')[0],
+                startDate: regimen.startDate || getLocalISOString(),
               }));
               await db.regimenHistory.bulkPut(sanitizedRegimens);
             }

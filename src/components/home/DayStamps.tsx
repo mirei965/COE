@@ -10,6 +10,7 @@ import { useSetting } from '@/hooks/useSettings';
 import { Input } from '@/components/ui/Input';
 import { db } from '@/db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { getLocalISOString } from '@/lib/date';
 
 const DEFAULT_STAMPS = {
   symptom: ['頭痛', 'めまい', '耳鳴り', '気分の落ち込み', '不安感'],
@@ -42,7 +43,7 @@ const DetailInput = ({ initialValue, onSave, placeholder }: { initialValue: stri
 };
 
 export function DayStamps() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalISOString();
   const medicines = useLiveQuery(() => db.medicines.toArray());
   const { addEventLog, updateEventLog } = useEventLogs(today);
   const [feedback, setFeedback] = useState<string | null>(null);
