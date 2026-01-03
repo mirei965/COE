@@ -427,15 +427,16 @@ export function DayStamps() {
         </div>
 
         {isEditing && (
-          <div className="sticky bottom-6 flex justify-end pb-2 pr-2 pointer-events-none">
+          <div className="sticky bottom-24 flex justify-end pb-2 pr-2 z-30 pointer-events-none">
             <Button
-              className="rounded-full w-12 h-12 shadow-xl animate-in zoom-in duration-200 pointer-events-auto"
+              className="rounded-full w-12 h-12 shadow-xl pointer-events-auto bg-brand-500 hover:bg-brand-600 text-white animate-in zoom-in duration-200"
               onClick={() => setIsEditing(false)}
             >
               <Check className="h-6 w-6" />
             </Button>
           </div>
         )}
+
       </CardContent>
     </Card>
   );
