@@ -46,34 +46,58 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .dark body {
   /* Dark: Aurora Borealis Effect */
   background-color: #020617; /* Deepest Void Black basis */
   background-image: 
-    /* 1. Main Cosmic Glow (Top Center - Deep Blue) */ radial-gradient(
-      circle at 50% 0%,
-      #172554 0%,
-      transparent 60%
-    ),
+    /* 1. Main Cosmic Glow (Top Center - Deep Blue) */
+    radial-gradient(circle at 50% 0%, #172554 0%, transparent 60%),
     /* 2. Aurora Teal/Green (Top Left - Subtle Shimmer) */
-      radial-gradient(
+    radial-gradient(
         ellipse at 20% 0%,
         rgba(45, 212, 191, 0.15) 0%,
         transparent 50%
       ),
     /* 3. Cosmic Purple (Top Right - Mystery) */
-      radial-gradient(
+    radial-gradient(
         ellipse at 80% 0%,
         rgba(129, 140, 248, 0.15) 0%,
         transparent 50%
       ),
     /* 4. Bottom Deep Fade (Ensures bottom is readable black) */
-      linear-gradient(to bottom, transparent 30%, #020617 90%) !important;
+    linear-gradient(to bottom, transparent 30%, #020617 90%) !important;
 
   background-attachment: fixed !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+    font-size: 10pt; /* slightly smaller font for print */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide scrollbars and ensure no overflow */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
 }

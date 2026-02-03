@@ -188,7 +188,7 @@ function ReportContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors print:bg-white">
       {/* Print Control Bar (Screen only) */}
       <div className="print:hidden sticky top-0 z-50 bg-slate-900 border-b border-slate-800 text-white shadow-md w-full">
         <div className="max-w-[210mm] mx-auto w-full px-4 md:px-6 py-3 flex items-center justify-between">
@@ -218,10 +218,10 @@ function ReportContent() {
           </Button>
         </div>
       </div>
-      <div className='md:ml-45 md:mr-45 md:mt-5'>
+      <div className='md:ml-45 md:mr-45 md:mt-5 print:m-0 print:p-0 print:w-full'>
         {/* Report Content (A4 Style) */}
-        <div className="p-4 md:p-8 print:p-0">
-          <div className="max-w-[210mm] mx-auto bg-white dark:bg-slate-900 duration-300 p-4 md:p-6 print:p-[10mm] space-y-4 print:space-y-3 print:w-full h-auto text-slate-800 dark:text-slate-100 print:bg-white print:text-black shadow-2xl dark:shadow-none print:shadow-none rounded-sm border dark:border-slate-800 print:border-0">
+        <div className="p-4 md:p-8 print:p-0 print:w-full">
+          <div className="max-w-[210mm] mx-auto bg-white dark:bg-slate-900 duration-300 p-4 md:p-6 print:p-[12mm] space-y-4 print:space-y-4 print:w-full print:max-w-none h-auto text-slate-800 dark:text-slate-100 print:bg-white print:text-black shadow-2xl dark:shadow-none print:shadow-none rounded-sm border dark:border-slate-800 print:border-0 print:break-inside-avoid">
             {/* Header */}
             <div className="flex justify-between items-end border-b-2 border-slate-800 dark:border-slate-600 pb-2 print:border-slate-800">
               <div>

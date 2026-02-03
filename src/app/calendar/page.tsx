@@ -4,13 +4,17 @@ import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Switch } from '@/components/ui/Switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ChevronLeft, ChevronRight, Trash2, Edit2, Clock, Check, X, MapPin, Calendar as CalendarIcon, CheckCircle2, Circle, Plus, Pill, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Edit2, Clock, Check, X, MapPin, Calendar as CalendarIcon, CheckCircle2, Circle, Plus, Pill, Zap, Sun } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type EventLog } from '@/db/db';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Moon, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 export default function CalendarPage() {
   // Normalize a date to local midnight (00:00:00.000)
@@ -128,6 +132,129 @@ export default function CalendarPage() {
     if (deleteTargetId) {
       await db.eventLogs.delete(deleteTargetId);
       setDeleteTargetId(null);
+    }
+  };
+
+  // Night Review State
+  const [showNightReviewModal, setShowNightReviewModal] = useState(false);
+  const [nightReviewForm, setNightReviewForm] = useState({
+    dayOverall: 'fair' as 'good' | 'fair' | 'bad',
+    dinnerAmount: 'medium' as 'light' | 'medium' | 'heavy',
+    note: '',
+    echoSummary: '',
+  });
+
+  const openNightReviewModal = () => {
+    if (selectedDayLog) {
+      setNightReviewForm({
+        dayOverall: selectedDayLog.dayOverall ?? 'fair',
+        dinnerAmount: selectedDayLog.dinnerAmount ?? 'medium',
+        note: selectedDayLog.note ?? '',
+        echoSummary: selectedDayLog.echoSummary ?? '',
+      });
+    } else {
+      setNightReviewForm({
+        dayOverall: 'fair',
+        dinnerAmount: 'medium',
+        note: '',
+        echoSummary: '',
+      });
+    }
+    setShowNightReviewModal(true);
+  };
+
+  const handleSaveNightReview = async () => {
+    try {
+      await db.dayLogs.update(selectedDateStr, {
+        dayOverall: nightReviewForm.dayOverall,
+        dinnerAmount: nightReviewForm.dinnerAmount,
+        note: nightReviewForm.note,
+        updatedAt: Date.now(),
+      });
+      setShowNightReviewModal(false);
+    } catch (error) {
+      // If update fails (e.g. key doesn't exist), try put but we need to respect existing fields if any
+      const existing = await db.dayLogs.get(selectedDateStr);
+      await db.dayLogs.put({
+        ...existing,
+        id: selectedDateStr,
+        dayOverall: nightReviewForm.dayOverall,
+        dinnerAmount: nightReviewForm.dinnerAmount,
+        note: nightReviewForm.note,
+        createdAt: existing?.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      });
+      setShowNightReviewModal(false);
+    }
+  };
+
+  // Daily Data (Morning Check-in) Modal State
+  const [showDailyDataModal, setShowDailyDataModal] = useState(false);
+  const [dailyDataForm, setDailyDataForm] = useState({
+    sleepQuality: 3,
+    morningArousal: 3,
+    migraineProdrome: 0,
+    isMenstruation: false,
+    todayMode: 'normal' as 'normal' | 'eco' | 'rest',
+    sleepTime: '23:00',
+    wakeTime: '07:00',
+  });
+
+  const openDailyDataModal = () => {
+    if (selectedDayLog) {
+      setDailyDataForm({
+        sleepQuality: selectedDayLog.sleepQuality ?? 3,
+        morningArousal: selectedDayLog.morningArousal ?? 3,
+        migraineProdrome: selectedDayLog.migraineProdrome ?? 0,
+        isMenstruation: selectedDayLog.isMenstruation ?? false,
+        todayMode: selectedDayLog.todayMode ?? 'normal',
+        sleepTime: selectedDayLog.sleepStart ? new Date(selectedDayLog.sleepStart).toTimeString().slice(0, 5) : '23:00',
+        wakeTime: selectedDayLog.sleepEnd ? new Date(selectedDayLog.sleepEnd).toTimeString().slice(0, 5) : '07:00',
+      });
+    } else {
+      // Reset to defaults
+      setDailyDataForm({
+        sleepQuality: 3,
+        morningArousal: 3,
+        migraineProdrome: 0,
+        isMenstruation: false,
+        todayMode: 'normal',
+        sleepTime: '23:00',
+        wakeTime: '07:00',
+      });
+    }
+    setShowDailyDataModal(true);
+  };
+
+  const handleSaveDailyData = async () => {
+    const wakeD = new Date(`${selectedDateStr}T${dailyDataForm.wakeTime}`);
+    const sleepD = new Date(`${selectedDateStr}T${dailyDataForm.sleepTime}`);
+
+    // Adjust sleep date if it crosses midnight (sleep time > wake time usually implies sleep started previous day, but here we just need relative logic)
+    // Actually, simple logic: if sleepTime is after 12:00 and wakeTime is morning, sleepD was yesterday.
+    // Let's assume input implies the contextual sleep/wake for THIS record date.
+    if (parseInt(dailyDataForm.sleepTime.split(':')[0]) > 12 && parseInt(dailyDataForm.wakeTime.split(':')[0]) < 12) {
+      sleepD.setDate(sleepD.getDate() - 1);
+    }
+
+    try {
+      // Use put to upsert
+      await db.dayLogs.put({
+        id: selectedDateStr,
+        sleepStart: sleepD,
+        sleepEnd: wakeD,
+        sleepQuality: dailyDataForm.sleepQuality,
+        morningArousal: dailyDataForm.morningArousal,
+        migraineProdrome: dailyDataForm.migraineProdrome,
+        isMenstruation: dailyDataForm.isMenstruation,
+        todayMode: dailyDataForm.todayMode,
+        createdAt: selectedDayLog?.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      });
+      setShowDailyDataModal(false);
+    } catch (error) {
+      console.error("Failed to save daily data", error);
+      alert("保存に失敗しました");
     }
   };
 
@@ -348,11 +475,67 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* DayLog Summary */}
-              {selectedDayLog && (selectedDayLog.sleepQuality || selectedDayLog.morningArousal) && (
-                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30">
+              {/* Night Review Summary */}
+              {selectedDayLog && (selectedDayLog.dayOverall || selectedDayLog.note || selectedDayLog.echoSummary) && (
+                <div className="p-4 bg-indigo-50/30 dark:bg-indigo-900/10 relative group border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-bold text-indigo-500 bg-indigo-100 dark:bg-indigo-900 dark:text-indigo-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Moon className="w-3 h-3" /> Night Review
+                    </span>
+                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0" onClick={openNightReviewModal}>
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  {selectedDayLog.dayOverall && (
+                    <div className="flex gap-4 mb-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase">総合</span>
+                        <span className={cn("font-bold",
+                          selectedDayLog.dayOverall === 'good' ? "text-emerald-600" :
+                            selectedDayLog.dayOverall === 'bad' ? "text-red-600" : "text-slate-600"
+                        )}>
+                          {selectedDayLog.dayOverall === 'good' ? '良い' : selectedDayLog.dayOverall === 'bad' ? '悪い' : '普通'}
+                        </span>
+                      </div>
+                      {selectedDayLog.dinnerAmount && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 font-bold uppercase">夕食</span>
+                          <span className="text-slate-700 dark:text-slate-300 font-medium">
+                            {selectedDayLog.dinnerAmount === 'light' ? '少なめ' : selectedDayLog.dinnerAmount === 'heavy' ? '多め' : '普通'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedDayLog.echoSummary && (
+                    <div className="mb-3 bg-white dark:bg-slate-900/50 p-3 rounded border border-indigo-100 dark:border-indigo-900/30">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 mb-1">
+                        <Sparkles className="w-3 h-3" /> AI Summary
+                      </div>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-0">
+                        <ReactMarkdown>{selectedDayLog.echoSummary}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedDayLog.note && (
+                    <div className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap border-l-2 border-slate-300 dark:border-slate-700 pl-2">
+                      {selectedDayLog.note}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* DayLog Summary or Add Button */}
+              {selectedDayLog && (selectedDayLog.sleepQuality || selectedDayLog.morningArousal) ? (
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30 relative group">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">Daily Log</span>
+                    <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0" onClick={openDailyDataModal}>
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
                   </div>
                   <div className="space-y-2">
                     {selectedDayLog.sleepQuality && (
@@ -380,6 +563,18 @@ export default function CalendarPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              ) : (
+                <div className="p-4">
+                  <Button variant="outline" className="w-full h-auto py-3 justify-start gap-3 border-dashed border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800" onClick={openDailyDataModal}>
+                    <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-full text-orange-500">
+                      <Sun className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">朝のチェックインを追加</span>
+                      <span className="text-xs text-slate-500">睡眠時間や起床時の調子を記録</span>
+                    </div>
+                  </Button>
                 </div>
               )}
 
@@ -614,6 +809,223 @@ export default function CalendarPage() {
               <Button className="w-full h-12 mt-4 font-bold" onClick={handleAddLog} disabled={!newLogName}>
                 追加する
               </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {/* Night Review Modal */}
+      {showNightReviewModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto" onClick={() => setShowNightReviewModal(false)}>
+          <div
+            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 my-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-center font-bold mb-4 text-slate-900 dark:text-slate-100 flex items-center justify-center gap-2">
+              <Moon className="h-5 w-5 text-indigo-500" />
+              <span>Night Review</span>
+            </h3>
+            <p className="text-center text-xs text-slate-500 mb-6">{selectedDate.getMonth() + 1}/{selectedDate.getDate()} の記録</p>
+
+            <div className="space-y-4">
+              {/* Overall & Dinner */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500">今日の総合</label>
+                  <div className="flex gap-1">
+                    {(['good', 'fair', 'bad'] as const).map(opt => (
+                      <button key={opt}
+                        onClick={() => setNightReviewForm({ ...nightReviewForm, dayOverall: opt })}
+                        className={cn(
+                          "flex-1 py-2 rounded text-xs font-bold capitalize border transition-all",
+                          nightReviewForm.dayOverall === opt
+                            ? opt === 'good' ? "bg-emerald-100 text-emerald-700 border-emerald-400 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700" :
+                              opt === 'bad' ? "bg-red-100 text-red-700 border-red-400 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700" :
+                                "bg-slate-200 text-slate-700 border-slate-400 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-500"
+                            : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        {opt === 'good' ? '良い' : opt === 'fair' ? '普通' : '悪い'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500">夕食の量</label>
+                  <div className="flex gap-1">
+                    {(['light', 'medium', 'heavy'] as const).map(opt => (
+                      <button key={opt}
+                        onClick={() => setNightReviewForm({ ...nightReviewForm, dinnerAmount: opt })}
+                        className={cn(
+                          "flex-1 py-2 rounded text-xs font-bold capitalize border transition-all",
+                          nightReviewForm.dinnerAmount === opt
+                            ? "bg-brand-100 text-brand-700 border-brand-400 dark:bg-brand-900/40 dark:text-brand-300 dark:border-brand-700"
+                            : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        {opt === 'light' ? '少' : opt === 'medium' ? '普' : '多'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">フリーメモ</label>
+                <Textarea
+                  placeholder="今日の日記..."
+                  value={nightReviewForm.note}
+                  onChange={e => setNightReviewForm({ ...nightReviewForm, note: e.target.value })}
+                  className="h-24 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowNightReviewModal(false)}>
+                  キャンセル
+                </Button>
+                <Button className="flex-1 font-bold bg-indigo-500 hover:bg-indigo-600 text-white" onClick={handleSaveNightReview}>
+                  保存する
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Daily Data (Check-in) Modal */}
+      {showDailyDataModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto" onClick={() => setShowDailyDataModal(false)}>
+          <div
+            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl animate-in zoom-in-95 duration-200 my-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-center font-bold mb-4 text-slate-900 dark:text-slate-100 flex items-center justify-center gap-2">
+              <Sun className="h-5 w-5 text-orange-500" />
+              <span>モーニングチェックイン</span>
+            </h3>
+            <p className="text-center text-xs text-slate-500 mb-6">{selectedDate.getMonth() + 1}/{selectedDate.getDate()} の記録</p>
+
+            <div className="space-y-6">
+              {/* Sleep Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500">就寝</label>
+                  <Input
+                    type="time"
+                    value={dailyDataForm.sleepTime}
+                    onChange={e => setDailyDataForm({ ...dailyDataForm, sleepTime: e.target.value })}
+                    className="text-center bg-slate-50 dark:bg-slate-800"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500">起床</label>
+                  <Input
+                    type="time"
+                    value={dailyDataForm.wakeTime}
+                    onChange={e => setDailyDataForm({ ...dailyDataForm, wakeTime: e.target.value })}
+                    className="text-center bg-slate-50 dark:bg-slate-800"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </div>
+              </div>
+
+              {/* Sliders */}
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-300">睡眠の質</span>
+                    <span className="font-bold text-brand-600">{dailyDataForm.sleepQuality}</span>
+                  </div>
+                  <input
+                    type="range" min="1" max="5" step="1"
+                    className="w-full accent-brand-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700"
+                    value={dailyDataForm.sleepQuality}
+                    onChange={e => setDailyDataForm({ ...dailyDataForm, sleepQuality: parseInt(e.target.value) })}
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 px-1">
+                    <span>悪い</span>
+                    <span>良い</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-300">目覚めの良さ</span>
+                    <span className="font-bold text-amber-500">{dailyDataForm.morningArousal}</span>
+                  </div>
+                  <input
+                    type="range" min="1" max="5" step="1"
+                    className="w-full accent-amber-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700"
+                    value={dailyDataForm.morningArousal}
+                    onChange={e => setDailyDataForm({ ...dailyDataForm, morningArousal: parseInt(e.target.value) })}
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 px-1">
+                    <span>悪い</span>
+                    <span>良い</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prodrome & Menstruation */}
+              <div className="flex items-center justify-between py-2 border-t border-b border-slate-100 dark:border-slate-800">
+                <div className="space-y-2">
+                  <span className="block text-xs font-bold text-slate-500">頭痛予兆</span>
+                  <div className="flex gap-2">
+                    {[0, 1, 2, 3].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setDailyDataForm({ ...dailyDataForm, migraineProdrome: level })}
+                        className={cn(
+                          "h-8 w-8 rounded-full text-xs font-bold transition-all border flex items-center justify-center",
+                          dailyDataForm.migraineProdrome === level
+                            ? "bg-rose-500 text-white border-rose-500 shadow-md transform scale-105"
+                            : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
+                        )}
+                      >
+                        {level === 0 ? '-' : level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500">生理</span>
+                  <Switch
+                    checked={dailyDataForm.isMenstruation}
+                    onChange={(e) => setDailyDataForm({ ...dailyDataForm, isMenstruation: e.target.checked })}
+                  />
+                </div>
+              </div>
+
+              {/* Today Mode */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-500">コンディションモード</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['normal', 'eco', 'rest'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setDailyDataForm({ ...dailyDataForm, todayMode: mode })}
+                      className={cn(
+                        "rounded-lg py-2 text-xs font-bold uppercase transition-all border-2",
+                        dailyDataForm.todayMode === mode
+                          ? "bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
+                          : "bg-transparent border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200"
+                      )}
+                    >
+                      {mode === 'normal' ? '通常' : mode === 'eco' ? '省エネ' : '養生'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button className="w-full font-bold h-12" onClick={handleSaveDailyData}>
+                  保存する
+                </Button>
+              </div>
             </div>
           </div>
         </div>,
