@@ -188,7 +188,31 @@ function ReportContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors print:bg-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors print:bg-white print:min-h-0">
+      {/* Global Print Styles to force 1 page and fix margins */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 5mm !important;
+          }
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+          }
+          /* Ensure no extra pages from ghost elements */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .no-break {
+            break-inside: avoid;
+          }
+        }
+      `}</style>
+
       {/* Print Control Bar (Screen only) */}
       <div className="print:hidden sticky top-0 z-50 bg-slate-900 border-b border-slate-800 text-white shadow-md w-full">
         <div className="max-w-[210mm] mx-auto w-full px-4 md:px-6 py-3 flex items-center justify-between">
@@ -218,10 +242,10 @@ function ReportContent() {
           </Button>
         </div>
       </div>
-      <div className='md:ml-45 md:mr-45 md:mt-5 print:m-0 print:p-0 print:w-full'>
+      <div className='max-w-4xl mx-auto md:mt-5 print:m-0 print:p-0 print:w-full'>
         {/* Report Content (A4 Style) */}
         <div className="p-4 md:p-8 print:p-0 print:w-full">
-          <div className="max-w-[210mm] mx-auto bg-white dark:bg-slate-900 duration-300 p-4 md:p-6 print:p-[12mm] space-y-4 print:space-y-4 print:w-full print:max-w-none h-auto text-slate-800 dark:text-slate-100 print:bg-white print:text-black shadow-2xl dark:shadow-none print:shadow-none rounded-sm border dark:border-slate-800 print:border-0 print:break-inside-avoid">
+          <div className="max-w-[210mm] mx-auto bg-white dark:bg-slate-900 duration-300 p-4 md:p-6 print:p-[5mm] space-y-4 print:space-y-2 print:w-full print:max-w-none h-auto text-slate-800 dark:text-slate-100 print:bg-white print:text-black shadow-2xl dark:shadow-none print:shadow-none rounded-sm border dark:border-slate-800 print:border-0 print:break-inside-avoid">
             {/* Header */}
             <div className="flex justify-between items-end border-b-2 border-slate-800 dark:border-slate-600 pb-2 print:border-slate-800">
               <div>
@@ -235,9 +259,9 @@ function ReportContent() {
               </div>
             </div>
             {/* 1. Vital Graph */}
-            <div className="space-y-3 break-inside-avoid">
+            <div className="space-y-3 print:space-y-1 break-inside-avoid">
               <h2 className="text-base font-bold border-l-4 border-indigo-600 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">睡眠・症状数の推移</h2>
-              <div className="h-48 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-transparent print:bg-white print:border-slate-300 overflow-hidden">
+              <div className="h-48 print:h-36 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-transparent print:bg-white print:border-slate-300 overflow-hidden">
                 {graphData && graphData.length > 0 ? (
                   <ResponsiveContainerAny width="100%" height="100%">
                     <LineChartAny data={graphData} margin={{ top: 15, right: 20, left: 20, bottom: 5 }}>
@@ -263,17 +287,17 @@ function ReportContent() {
             </div>
 
             {/*Condition Summary*/}
-            <div className="mt-5 space-y-3 break-inside-avoid">
+            <div className="mt-5 print:mt-2 space-y-3 print:space-y-1 break-inside-avoid">
               <h2 className="text-base font-bold border-l-4 border-amber-500 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">平均コンディション記録</h2>
-              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg p-4 print:bg-slate-50 print:border-slate-300">
+              <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg p-4 print:p-2 print:bg-slate-50 print:border-slate-300">
                 <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-300 dark:divide-slate-700">
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">睡眠時間 (平均)</p>
                     <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(avgSleepMin)}</p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[10px] text-slate-500 print:hidden">
                       範囲: {fmtTime(minSleepMin)} 〜 {fmtTime(maxSleepMin)}
                     </p>
-                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 print:mt-1 print:pt-1">
                       <p className="text-xs text-slate-500 dark:text-slate-400">平均睡眠の質</p>
                       <p className="text-base font-bold text-slate-800 dark:text-slate-100">★{avgSleepQuality}</p>
                     </div>
@@ -291,15 +315,15 @@ function ReportContent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 break-inside-avoid mt-2 border-t border-slate-100 dark:border-slate-800 pt-4">
+            <div className="grid grid-cols-2 gap-4 break-inside-avoid mt-2 border-t border-slate-100 dark:border-slate-800 pt-4 print:pt-2 print:gap-2">
               {/* 2. Medication */}
-              <div className="space-y-2">
+              <div className="space-y-2 print:space-y-1">
                 <div className="flex justify-between items-baseline mb-1 border-l-4 border-emerald-600 pl-2">
                   <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 print:text-slate-900">服薬・減薬状況</h2>
                 </div>
 
                 {regimenLogs && regimenLogs.length > 0 && (
-                  <div className="mb-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded border border-emerald-100 dark:border-emerald-800 text-xs text-slate-700 dark:text-slate-300 print:text-slate-800 print:border-emerald-200">
+                  <div className="mb-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded border border-emerald-100 dark:border-emerald-800 text-xs text-slate-700 dark:text-slate-300 print:text-slate-800 print:border-emerald-200 print:mb-1">
                     <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1 print:text-emerald-700">期間中の変更:</p>
                     <ul className="space-y-1">
                       {regimenLogs.map(r => (
@@ -335,7 +359,7 @@ function ReportContent() {
               </div>
 
               {/* 3. Symptoms */}
-              <div className="space-y-2">
+              <div className="space-y-2 print:space-y-1">
                 <h2 className="text-base font-bold border-l-4 border-rose-500 pl-2 text-slate-800 dark:text-slate-100 print:text-slate-900">主な症状</h2>
                 <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 print:bg-white print:border-slate-300">
                   {topSymptoms.length > 0 ? (
@@ -358,7 +382,7 @@ function ReportContent() {
             </div>
 
             {/* 4. AI Report Summary */}
-            <div className="space-y-2 mt-3 break-inside-avoid">
+            <div className="space-y-2 mt-3 print:mt-1 break-inside-avoid">
               <div className="flex items-center justify-between border-l-4 border-indigo-500 pl-2">
                 <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 print:text-slate-900">AIサマリー</h2>
                 {!isGenerating && (
@@ -383,7 +407,7 @@ function ReportContent() {
                 )}
               </div>
 
-              <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-4 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-800 dark:text-slate-200 print:bg-white print:border-slate-300 min-h-[150px]">
+              <div className="border border-slate-300 dark:border-slate-700 rounded-lg p-4 print:p-2 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-800 dark:text-slate-200 print:bg-white print:border-slate-300 min-h-[150px] print:min-h-0">
                 {isGenerating ? (
                   <div className="flex flex-col items-center justify-center py-8 text-slate-500 gap-2">
                     <Loader2 className="h-5 w-5 animate-spin" />

@@ -44,7 +44,7 @@ export const eventLogSchema = z.object({
   date: dateIdSchema,
   type: z.enum(['symptom', 'medicine', 'trigger', 'food']),
   name: z.string().min(1).max(100),
-  severity: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  severity: z.number().min(1).max(5),
   note: noteSchema,
   timestamp: z.number(),
 }).passthrough();

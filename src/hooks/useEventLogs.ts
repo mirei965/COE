@@ -42,6 +42,7 @@ export function useEventLogs(date: string) {
       const validated = eventLogSchema.partial().parse({
         ...existing,
         ...input,
+        timestamp: Date.now(), // 更新時もタイムスタンプを最新にする
       });
 
       await db.eventLogs.update(id, validated as Partial<EventLog>);

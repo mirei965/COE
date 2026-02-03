@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -14,7 +14,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -115,7 +116,7 @@ export function DayStamps() {
 
   const today = getLocalISOString();
   const medicines = useLiveQuery(() => db.medicines.toArray());
-  const { addEventLog, updateEventLog } = useEventLogs(today);
+  const { eventLogs, addEventLog, updateEventLog } = useEventLogs(today);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -127,6 +128,44 @@ export function DayStamps() {
 
   // Track last logged info for each item
   const [lastLoggedMap, setLastLoggedMap] = useState<Record<string, { id: number, timestamp: number, severity: number }>>({});
+  const lastLoggedRef = useRef<Record<string, { id: number, timestamp: number, severity: number }>>({});
+  const processingQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Sync recent logs from DB to state/ref to allow "continuation" of combos after reload
+  useEffect(() => {
+    if (!eventLogs) return;
+    const now = Date.now();
+    const map: Record<string, { id: number, timestamp: number, severity: number }> = {};
+
+    eventLogs.forEach(log => {
+      // Only consider logs from the last 5 minutes for potential "combo-ing" (visual) 
+      // or actually checking specific threshold logic (5 seconds) happen in handleStamp.
+      // We just map the LATEST log for each name.
+      // Since eventLogs are sorted by timestamp (asc), iterate valid logs and overwrite.
+      if (log.id && log.timestamp && log.name) {
+        // Normalized key logic should match handleStamp
+        const nameKey = log.name; // Logic in handleStamp uses formatted name w/ dosage
+        map[nameKey] = { id: log.id, timestamp: log.timestamp, severity: log.severity };
+      }
+    });
+
+    // Only update if we have new info that is newer than what we have (or we are initializing)
+    // Actually, simple sync is fine because DB is source of truth.
+    // We merge with current ref to not lose milliseconds-fresh optimistic updates if any.
+    // But optimistic updates are immediately written to DB, so DB eventually reflects them.
+    // To be safe against race conditions where DB update hasn't come back yet but we have local ref:
+    // We can rely on the fact that if it's in DB, it's saved.
+
+    // We mainly want to catch: "Page loaded, is there a recent log I can increment?"
+    // So we iterate and populate.
+    Object.entries(map).forEach(([key, val]) => {
+      const current = lastLoggedRef.current[key];
+      if (!current || val.timestamp > current.timestamp) {
+        lastLoggedRef.current[key] = val;
+      }
+    });
+    setLastLoggedMap(prev => ({ ...prev, ...map }));
+  }, [eventLogs]);
 
   // Settings for each category
   const { value: symptoms, setValue: setSymptoms } = useSetting<string[]>('stamps_symptom', DEFAULT_STAMPS.symptom);
@@ -148,9 +187,15 @@ export function DayStamps() {
   ] as const;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -173,6 +218,9 @@ export function DayStamps() {
       setMeds(newMedsList);
     }
   }, [medicines, meds, setMeds]);
+
+  // Sync state with ref on mount/updates if necessary, though mainly we drive from ref to state in handleStamp
+  // Actually we don't need effect sync provided we always write to both in handleStamp.
 
   if (!mounted) {
     return (
@@ -221,56 +269,65 @@ export function DayStamps() {
     }
   };
 
-  const handleStamp = async (type: string, name: string) => {
+  const handleStamp = (type: string, name: string) => {
     if (isEditing) return;
-    try {
-      const detail = getItemDetail(name);
-      const logName = detail?.dosage ? `${name} (${detail.dosage})` : name;
-      const now = Date.now();
+    processingQueueRef.current = processingQueueRef.current.then(async () => {
+      try {
+        const detail = getItemDetail(name);
+        const logName = detail?.dosage ? `${name} (${detail.dosage})` : name;
+        const now = Date.now();
 
-      const last = lastLoggedMap[logName];
-      if (last && (now - last.timestamp < 5000)) {
-        const isQuantityType = type === 'medicine' || type === 'food';
-        const maxLevel = isQuantityType ? 4 : 3;
-        const newSeverity = (last.severity % maxLevel) + 1;
+        // Use Ref for immediate logic check to prevent race conditions
+        const last = lastLoggedRef.current[logName];
 
-        await updateEventLog(last.id, { severity: newSeverity as 1 | 2 | 3 });
+        if (last && (now - last.timestamp < 5000)) {
+          const isQuantityType = type === 'medicine' || type === 'food';
+          const maxLevel = isQuantityType ? 5 : 3; // Use 5 for max severity as per updated schema
+          const newSeverity = (last.severity % maxLevel) + 1;
 
-        setLastLoggedMap(prev => ({
-          ...prev,
-          [logName]: { ...last, severity: newSeverity, timestamp: now }
-        }));
+          await updateEventLog(last.id, { severity: newSeverity });
 
-        let feedbackMsg = '';
-        if (isQuantityType) {
-          feedbackMsg = `${logName} x${newSeverity}`;
+          const updatedEntry = { ...last, severity: newSeverity, timestamp: now };
+
+          // Update Ref immediately
+          lastLoggedRef.current[logName] = updatedEntry;
+          // Update State for UI
+          setLastLoggedMap(prev => ({ ...prev, [logName]: updatedEntry }));
+
+          let feedbackMsg = '';
+          if (isQuantityType) {
+            feedbackMsg = `${logName} x${newSeverity}`;
+          } else {
+            const severityLabel = newSeverity === 1 ? '弱' : newSeverity === 2 ? '中' : '強';
+            feedbackMsg = `${logName} の強度を【${severityLabel}】に変更しました`;
+          }
+          setFeedback(feedbackMsg);
         } else {
-          const severityLabel = newSeverity === 1 ? '弱' : newSeverity === 2 ? '中' : '強';
-          feedbackMsg = `${logName} の強度を【${severityLabel}】に変更しました`;
-        }
-        setFeedback(feedbackMsg);
-      } else {
-        const id = await addEventLog({
-          type: type as 'symptom' | 'medicine' | 'trigger' | 'food',
-          name: logName,
-          severity: 1,
-        });
+          const id = await addEventLog({
+            type: type as 'symptom' | 'medicine' | 'trigger' | 'food',
+            name: logName,
+            severity: 1,
+          });
 
-        if (id) {
-          setLastLoggedMap(prev => ({
-            ...prev,
-            [logName]: { id, timestamp: now, severity: 1 }
-          }));
+          if (id) {
+            const newEntry = { id, timestamp: now, severity: 1 };
+            // Update Ref immediately
+            lastLoggedRef.current[logName] = newEntry;
+            // Update State for UI
+            setLastLoggedMap(prev => ({ ...prev, [logName]: newEntry }));
+          }
+
+          const isQuantityType = type === 'medicine' || type === 'food';
+          setFeedback(`${logName} を記録しました ${isQuantityType ? '(タップで量を追加)' : '(タップで強度変更)'}`);
         }
 
-        const isQuantityType = type === 'medicine' || type === 'food';
-        setFeedback(`${logName} を記録しました ${isQuantityType ? '(タップで量を追加)' : '(タップで強度変更)'}`);
+        setTimeout(() => setFeedback(null), 3000);
+      } catch (error) {
+        console.error('Failed to handle stamp:', error);
       }
-
-      setTimeout(() => setFeedback(null), 3000);
-    } catch (error) {
-      console.error('Failed to handle stamp:', error);
-    }
+    }).catch(err => {
+      console.error('DayStamps Queue Error:', err);
+    });
   };
 
   const updateItemDetail = (name: string, field: keyof ItemDetail, value: unknown) => {
@@ -331,6 +388,7 @@ export function DayStamps() {
     const detail = getItemDetail(name);
     const logName = detail?.dosage ? `${name} (${detail.dosage})` : name;
     const last = lastLoggedMap[logName];
+    // 表示用インジケーターは操作が終わったら消えるように5秒間に戻す
     if (!last || (Date.now() - last.timestamp > 5000)) return null;
 
     if (type === 'medicine' || type === 'food') {
@@ -359,115 +417,142 @@ export function DayStamps() {
     const isMedicine = catKey === 'medicine';
     const medInfo = medicines?.find(m => m.name === item);
     const isPrn = medInfo?.type === 'prn' || detail?.dosage === '頓服';
-    // Overlay is always "editing" appearance if we are in editing mode
     const editingAppearance = isEditing || isOverlay;
 
-    const Wrapper = editingAppearance ? 'div' : 'button';
+    // Common Content (Label, Badges, Dosage info)
+    const cardBody = (
+      <>
+        <div className="flex items-center gap-0.5 flex-wrap justify-center font-bold relative z-10 pointer-events-none">
+          {item}
+          {!editingAppearance && isPrn && (
+            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400 text-[9px] font-bold border border-amber-200 dark:border-amber-800 shrink-0 ml-1">
+              頓
+            </span>
+          )}
+          {!editingAppearance && getSeverityIndicator(item, catKey)}
+        </div>
 
-    return (
-      <div className="relative group h-full">
-        {!editingAppearance && getStatusIcon(detail?.status)}
-        {isEditing && !isOverlay && (
-          <div className="absolute top-1/2 -left-1 -translate-y-1/2 opacity-30 text-slate-400">
-            <GripVertical className="w-3 h-3" />
-          </div>
+        {!editingAppearance && detail?.dosage && detail.dosage !== '頓服' && (
+          <span className="text-[10px] opacity-70 mt-0.5 font-mono pointer-events-none">{detail.dosage}</span>
         )}
-        <Wrapper
-          className={cn(
-            "rounded-md text-sm shadow-sm flex flex-col items-center",
-            !editingAppearance && "transition-all active:scale-95 justify-center px-1 py-1.5 sm:px-3 min-w-0 sm:min-w-[3rem] w-full h-full",
-            !editingAppearance && detail?.dosage && detail.dosage !== '頓服' && "py-2 leading-none",
-            editingAppearance && "justify-start px-3 py-3 w-auto min-w-[140px] h-full cursor-default ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900",
-            !editingAppearance && catColor === 'red' && "bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20",
-            !editingAppearance && catColor === 'blue' && "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20",
-            !editingAppearance && catColor === 'amber' && "bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20",
-            !editingAppearance && catColor === 'emerald' && "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20",
-            isOverlay && "ring-2 ring-brand-500 shadow-xl opacity-90 scale-105"
-          )}
-        >
-          <div className="flex items-center gap-0.5 flex-wrap justify-center font-bold">
-            {item}
-            {!editingAppearance && isPrn && (
-              <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400 text-[9px] font-bold border border-amber-200 dark:border-amber-800 shrink-0 ml-1">
-                頓
-              </span>
+      </>
+    );
+
+    // EDIT MODE / DRAG OVERLAY
+    if (editingAppearance) {
+      return (
+        <div className="relative group h-full">
+          <div
+            className={cn(
+              "rounded-md text-sm shadow-sm flex flex-col items-center justify-start px-3 py-3 w-auto min-w-[140px] h-full cursor-default ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900",
+              isOverlay && "ring-2 ring-brand-500 shadow-xl opacity-90 scale-105"
             )}
-            {!editingAppearance && getSeverityIndicator(item, catKey)}
+          >
+            {isOverlay && (
+              <div className="absolute top-1/2 -left-1 -translate-y-1/2 opacity-30 text-slate-400">
+                <GripVertical className="w-3 h-3" />
+              </div>
+            )}
+
+            {cardBody}
+
+            {(isMedicine || catKey === 'food') && (
+              <div className="mt-2 flex flex-col gap-1 w-full min-w-[120px]">
+                {/* Only show inputs if NOT overlay, or non-interactive fake inputs */}
+                {isOverlay ? (
+                  <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded w-full" />
+                ) : (
+                  <>
+                    <DetailInput
+                      initialValue={detail?.dosage || ''}
+                      placeholder={isMedicine ? "1回量 (例: 0.5mg)" : "1回分 (例: 200ml)"}
+                      onSave={(val) => updateItemDetail(item, 'dosage', val)}
+                    />
+                    {isMedicine && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            setOpenDropdown(openDropdown === item ? null : item);
+                          }}
+                          className="text-base p-1.5 w-full rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-brand-500 text-left flex items-center justify-between text-slate-700 dark:text-slate-300 transition-all shadow-sm"
+                        >
+                          <span className={cn((detail?.status || 'none') === 'none' && "text-slate-500")}>
+                            {getStatusLabel(detail?.status || 'none')}
+                          </span>
+                          <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", openDropdown === item && "rotate-180")} />
+                        </button>
+                        {openDropdown === item && (
+                          <>
+                            <div className="fixed inset-0 z-[60]" onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); }} />
+                            <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-xl z-[70] overflow-hidden py-1 animate-in slide-in-from-top-1 duration-200">
+                              {['none', 'decrease', 'increase', 'new', 'stop'].map((opt) => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleSelectOption(item, opt); }}
+                                  className={cn(
+                                    "w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center justify-between",
+                                    (detail?.status || 'none') === opt ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                  )}
+                                >
+                                  {getStatusLabel(opt)}
+                                  {(detail?.status || 'none') === opt && <Check className="h-4 w-4" />}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          {!editingAppearance && detail?.dosage && detail.dosage !== '頓服' && (
-            <span className="text-[10px] opacity-70 mt-0.5 font-mono">{detail.dosage}</span>
-          )}
-
-          {editingAppearance && (isMedicine || catKey === 'food') && (
-            <div className="mt-2 flex flex-col gap-1 w-full min-w-[120px]">
-              {/* Only show inputs if NOT overlay, or non-interactive fake inputs */}
-              {isOverlay ? (
-                <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded w-full" />
-              ) : (
-                <>
-                  <DetailInput
-                    initialValue={detail?.dosage || ''}
-                    placeholder={isMedicine ? "1回量 (例: 0.5mg)" : "1回分 (例: 200ml)"}
-                    onSave={(val) => updateItemDetail(item, 'dosage', val)}
-                  />
-                  {isMedicine && (
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          setOpenDropdown(openDropdown === item ? null : item);
-                        }}
-                        // Important: prevent drag from button click if possible, though pointer sensor handles constraint
-                        className="text-base p-1.5 w-full rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-brand-500 text-left flex items-center justify-between text-slate-700 dark:text-slate-300 transition-all shadow-sm"
-                      >
-                        <span className={cn((detail?.status || 'none') === 'none' && "text-slate-500")}>
-                          {getStatusLabel(detail?.status || 'none')}
-                        </span>
-                        <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", openDropdown === item && "rotate-180")} />
-                      </button>
-
-                      {openDropdown === item && (
-                        <>
-                          <div className="fixed inset-0 z-[60]" onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); }} />
-                          <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-xl z-[70] overflow-hidden py-1 animate-in slide-in-from-top-1 duration-200">
-                            {['none', 'decrease', 'increase', 'new', 'stop'].map((opt) => (
-                              <button
-                                key={opt}
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); handleSelectOption(item, opt); }}
-                                className={cn(
-                                  "w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center justify-between",
-                                  (detail?.status || 'none') === opt ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400" : "hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                                )}
-                              >
-                                {getStatusLabel(opt)}
-                                {(detail?.status || 'none') === opt && <Check className="h-4 w-4" />}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
+          {!isOverlay && (
+            <div className="absolute -top-1 -right-1 z-10">
+              {/* Separate click target for delete button inside edit mode */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteStamp(catKey, item, categories.find(c => c.key === catKey)?.items || [], categories.find(c => c.key === catKey)?.setter as any);
+                }}
+                className="bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-500 rounded-full p-0.5 w-5 h-5 flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
             </div>
           )}
-        </Wrapper>
+        </div>
+      );
+    }
 
-        {editingAppearance && !isOverlay && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteStamp(catKey, item, categories.find(c => c.key === catKey)?.items || [], categories.find(c => c.key === catKey)?.setter as any);
-            }}
-            className="absolute -top-1 -right-1 bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-500 rounded-full p-0.5 w-4 h-4 flex items-center justify-center transition-colors shadow-sm z-10"
-          >
-            <X className="w-2.5 h-2.5" />
-          </button>
-        )}
+    // NORMAL VIEW MODE (Clickable Button)
+    return (
+      <div className="relative group h-full">
+        {getStatusIcon(detail?.status)}
+        <button
+          type="button"
+          onClick={(e) => {
+            // Explicitly stop propagation to avoid triggering Dnd listeners if any
+            e.stopPropagation();
+            handleStamp(catKey, item);
+          }}
+          className={cn(
+            "rounded-md text-sm shadow-sm flex flex-col items-center transition-all active:scale-95 justify-center px-1 py-1.5 sm:px-3 min-w-0 sm:min-w-[3rem] w-full h-full relative overflow-hidden",
+            (detail?.dosage && detail.dosage !== '頓服') && "py-2 leading-none",
+            catColor === 'red' && "bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20",
+            catColor === 'blue' && "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20",
+            catColor === 'amber' && "bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20",
+            catColor === 'emerald' && "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+          )}
+        >
+          {/* Ripple effect or active state is handled by CSS */}
+          {cardBody}
+        </button>
       </div>
     );
   };
@@ -575,6 +660,15 @@ export function DayStamps() {
               >
                 <Check className="h-6 w-6" />
               </Button>
+            </div>
+          )}
+
+          {feedback && (
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+              <div className="bg-slate-800/90 dark:bg-white/90 text-white dark:text-slate-900 px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2 animate-in fade-in zoom-in duration-200 whitespace-nowrap">
+                <Check className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
+                {feedback}
+              </div>
             </div>
           )}
 

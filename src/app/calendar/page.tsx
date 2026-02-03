@@ -73,7 +73,7 @@ export default function CalendarPage() {
   };
 
   // 選択した日のログ取得
-  const selectedDateStr = toLocalDateStr(selectedDate);
+  const selectedDateStr = useMemo(() => toLocalDateStr(selectedDate), [selectedDate]);
 
   // Use correctly normalized timestamp range based on local time
   const startTs = selectedDate.getTime();
@@ -81,11 +81,11 @@ export default function CalendarPage() {
 
   const logs = useLiveQuery(async () => {
     const events = await db.eventLogs
-      .where('timestamp')
-      .between(startTs, endTs)
-      .reverse()
+      .where('date')
+      .equals(selectedDateStr)
       .toArray();
-    return events;
+    // Sort manually to ensure newest first by timestamp within the date
+    return events.sort((a, b) => b.timestamp - a.timestamp);
   }, [selectedDateStr]);
 
   const selectedDayLog = useLiveQuery(async () => {
@@ -103,10 +103,16 @@ export default function CalendarPage() {
   const endDay = toLocalDateStr(calendarDays[calendarDays.length - 1].date);
 
   const monthlyDayLogs = useLiveQuery(async () => {
-    // 簡易的に全件取得でも良いが、範囲指定の方が良い
-    // Dexieのstring key範囲検索は辞書順なのでYYYY-MM-DDなら機能する
     return await db.dayLogs
       .where('id')
+      .between(startDay, endDay, true, true)
+      .toArray();
+  }, [startDay, endDay]);
+
+  // Fetch all event logs for the month to show indicators in the grid
+  const monthlyEventLogs = useLiveQuery(async () => {
+    return await db.eventLogs
+      .where('date')
       .between(startDay, endDay, true, true)
       .toArray();
   }, [startDay, endDay]);
@@ -297,6 +303,7 @@ export default function CalendarPage() {
       name: newLogName,
       severity: 1,
       timestamp: logDate.getTime(),
+      note: '' // Ensure note exists for schema validation
     });
 
     setShowAddModal(false);
@@ -366,6 +373,7 @@ export default function CalendarPage() {
                 const isToday = d.date.toDateString() === new Date().toDateString();
                 const score = getDayScore(dateStr);
                 const visit = monthlyVisits?.find(v => v.date === dateStr);
+                const hasLogs = monthlyEventLogs?.some(log => log.date === dateStr);
 
                 return (
                   <button
@@ -410,6 +418,11 @@ export default function CalendarPage() {
                           getScoreColor(score),
                           isSelected && "scale-110"
                         )} />
+                      )}
+
+                      {/* Log Existence Dot */}
+                      {!score && hasLogs && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                       )}
                     </div>
                   </button>
@@ -617,35 +630,46 @@ export default function CalendarPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                                {log.name.split('(')[0].trim()}
+                                {log.name.includes('(') ? log.name.split('(')[0].trim() : log.name}
                               </span>
 
                               {log.type === 'trigger' && (
                                 <span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm shrink-0 ml-1.5" title="考えられる原因" />
                               )}
 
-                              {log.severity && (
+                              {/* Severity Display */}
+                              {(log.severity !== undefined && log.severity > 0) && (
                                 (log.type === 'medicine' || log.type === 'food') ? (
-                                  <span className={cn(
-                                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center shrink-0 text-white",
-                                    log.type === 'medicine' ? "bg-brand-500 dark:bg-brand-600" : "bg-emerald-500 dark:bg-emerald-600"
-                                  )}>
-                                    x{log.severity}
-                                  </span>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className={cn(
+                                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center shrink-0 text-white",
+                                      log.type === 'medicine' ? "bg-brand-500 shadow-sm" : "bg-emerald-500 shadow-sm"
+                                    )}>
+                                      x{log.severity}
+                                    </span>
+                                  </div>
                                 ) : (
-                                  <div className="flex gap-0.5 items-end h-3 ml-1">
-                                    {[1, 2, 3].map((level) => (
-                                      <div
-                                        key={level}
-                                        className={cn(
-                                          "w-1 rounded-sm transition-all",
-                                          level <= log.severity
-                                            ? (log.severity === 3 ? "bg-red-500" : log.severity === 2 ? "bg-orange-400" : "bg-slate-400 dark:bg-slate-500")
-                                            : "bg-slate-200 dark:bg-slate-700",
-                                          level === 1 ? "h-1.5" : level === 2 ? "h-2" : "h-3"
-                                        )}
-                                      />
-                                    ))}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="flex gap-0.5 items-end h-3 ml-1">
+                                      {[1, 2, 3].map((level) => (
+                                        <div
+                                          key={level}
+                                          className={cn(
+                                            "w-1 rounded-sm transition-all",
+                                            level <= log.severity
+                                              ? (level === 3 ? "bg-rose-500 h-3" : level === 2 ? "bg-amber-400 h-2" : "bg-slate-400 h-1.5")
+                                              : "bg-slate-200 dark:bg-slate-700 h-1"
+                                          )}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className={cn(
+                                      "text-[10px] font-black",
+                                      log.severity === 3 ? "text-rose-600 dark:text-rose-400" :
+                                        log.severity === 2 ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
+                                    )}>
+                                      {log.severity === 3 ? '強' : log.severity === 2 ? '中' : '弱'}
+                                    </span>
                                   </div>
                                 )
                               )}
@@ -663,7 +687,7 @@ export default function CalendarPage() {
                               </span>
                               {(log.note || log.name.includes('(')) && (
                                 <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                  {log.name.match(/\((.*?)\)/)?.[1]} {log.note}
+                                  {log.name.includes('(') ? log.name.match(/\((.*?)\)/)?.[1] : ''} {log.note}
                                 </span>
                               )}
                             </div>
@@ -682,7 +706,7 @@ export default function CalendarPage() {
                   </div>
                 ))
               ) : (
-                !(selectedDayVisit || selectedDayLog) && <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                <div className="flex flex-col items-center justify-center p-8 text-slate-400"> {/* Removed specific condition checking to ensure this shows when logs is empty */}
                   <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-full mb-3">
                     <Clock className="h-6 w-6" />
                   </div>
