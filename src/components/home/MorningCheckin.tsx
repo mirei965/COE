@@ -20,8 +20,9 @@ export function MorningCheckin() {
     sleepQuality: 3,
     morningArousal: 3,
     migraineProdrome: 0,
+    fatigueLevel: 0,
     isMenstruation: false,
-    todayMode: 'normal' as 'normal' | 'eco' | 'rest',
+    todayMode: 'normal' as 'busy' | 'normal' | 'eco' | 'rest',
     // Time defaults?
     sleepTime: '23:00',
     wakeTime: '07:00',
@@ -34,8 +35,9 @@ export function MorningCheckin() {
         sleepQuality: dayLog.sleepQuality ?? 3,
         morningArousal: dayLog.morningArousal ?? 3,
         migraineProdrome: dayLog.migraineProdrome ?? 0,
+        fatigueLevel: dayLog.fatigueLevel ?? 0,
         isMenstruation: dayLog.isMenstruation ?? false,
-        todayMode: dayLog.todayMode ?? 'normal',
+        todayMode: (dayLog.todayMode as any) ?? 'normal',
         // Parse dates to time strings if available
         sleepTime: dayLog.sleepStart ? new Date(dayLog.sleepStart).toTimeString().slice(0, 5) : prev.sleepTime,
         wakeTime: dayLog.sleepEnd ? new Date(dayLog.sleepEnd).toTimeString().slice(0, 5) : prev.wakeTime,
@@ -66,15 +68,16 @@ export function MorningCheckin() {
       sleepQuality: formData.sleepQuality,
       morningArousal: formData.morningArousal,
       migraineProdrome: formData.migraineProdrome,
+      fatigueLevel: formData.fatigueLevel,
       isMenstruation: formData.isMenstruation,
-      todayMode: formData.todayMode
+      todayMode: formData.todayMode as any
     });
     setIsOpen(false);
   };
 
   if (!isOpen) {
     return (
-      <Card className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" onClick={() => setIsOpen(true)}>
+      <Card id="step-morning-collapsed" className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" onClick={() => setIsOpen(true)}>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <Sun className="h-5 w-5 text-brand-500" />
@@ -87,7 +90,7 @@ export function MorningCheckin() {
   }
 
   return (
-    <Card className="border-brand-100 dark:border-slate-800">
+    <Card id="step-morning" className="border-brand-100 dark:border-slate-800">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-xl">
           <Sun className="h-6 w-6 text-brand-500" />
@@ -98,7 +101,7 @@ export function MorningCheckin() {
         {/* Sleep Time */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-500">就寝</label>
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-300">就寝</label>
             <input
               type="time"
               className="w-full rounded-md border p-2 text-lg bg-slate-50 dark:bg-slate-900 dark:border-slate-700"
@@ -107,7 +110,7 @@ export function MorningCheckin() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-500">起床</label>
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-300">起床</label>
             <input
               type="time"
               className="w-full rounded-md border p-2 text-lg bg-slate-50 dark:bg-slate-900 dark:border-slate-700"
@@ -120,8 +123,8 @@ export function MorningCheckin() {
         {/* Sliders / Ratings */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>睡眠の質</span>
+            <div className="flex justify-between text-sm text-slate-800 dark:text-slate-200">
+              <span className="font-medium">睡眠の質</span>
               <span className="font-bold">{formData.sleepQuality}</span>
             </div>
             <input
@@ -133,8 +136,8 @@ export function MorningCheckin() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>起床時過覚醒</span>
+            <div className="flex justify-between text-sm text-slate-800 dark:text-slate-200">
+              <span className="font-medium">起床時過覚醒</span>
               <span className="font-bold">{formData.morningArousal}</span>
             </div>
             <input
@@ -146,20 +149,39 @@ export function MorningCheckin() {
           </div>
         </div>
 
-        {/* Prodrome & Menstruation */}
-        <div className="flex items-center justify-between">
+        {/* Prodrome, Fatigue & Menstruation */}
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-4 items-end">
           <div className="space-y-1">
-            <span className="block text-sm font-medium">頭痛予兆</span>
+            <span className="block text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">頭痛予兆</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3].map((level) => (
                 <button
                   key={level}
                   onClick={() => setFormData({ ...formData, migraineProdrome: level })}
                   className={cn(
-                    "h-8 w-8 rounded-full text-xs font-bold transition-all",
+                    "h-8 w-8 rounded-full text-xs font-bold transition-all border flex items-center justify-center",
                     formData.migraineProdrome === level
-                      ? "bg-brand-500 text-white scale-110"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                      ? "bg-brand-500 text-white border-brand-500 shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
+                  )}
+                >
+                  {level === 0 ? '-' : level}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="block text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">疲労感</span>
+            <div className="flex gap-1">
+              {[0, 1, 2, 3].map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setFormData({ ...formData, fatigueLevel: level })}
+                  className={cn(
+                    "h-8 w-8 rounded-full text-xs font-bold transition-all border flex items-center justify-center",
+                    formData.fatigueLevel === level
+                      ? "bg-brand-500 text-white border-brand-500 shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
                   )}
                 >
                   {level === 0 ? '-' : level}
@@ -168,7 +190,7 @@ export function MorningCheckin() {
             </div>
           </div>
           <div className="flex flex-col items-center space-y-1">
-            <span className="text-sm font-medium">生理</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">生理</span>
             <Switch
               checked={formData.isMenstruation}
               onChange={(e) => setFormData({ ...formData, isMenstruation: e.target.checked })}
@@ -178,20 +200,20 @@ export function MorningCheckin() {
 
         {/* Mode Selector */}
         <div className="space-y-2">
-          <span className="text-sm font-medium">今日のモード</span>
-          <div className="grid grid-cols-3 gap-2">
-            {(['normal', 'eco', 'rest'] as const).map((mode) => (
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">コンディションモード</span>
+          <div className="grid grid-cols-4 gap-2">
+            {(['busy', 'normal', 'eco', 'rest'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setFormData({ ...formData, todayMode: mode })}
                 className={cn(
-                  "rounded-lg py-2 text-sm font-medium capitalize border transition-all",
+                  "rounded-lg py-2 text-xs font-bold uppercase transition-all border-2",
                   formData.todayMode === mode
-                    ? "bg-brand-100 border-brand-500 text-brand-700 dark:bg-brand-900 dark:text-brand-300"
-                    : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-500"
+                    ? "bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
+                    : "bg-transparent border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200"
                 )}
               >
-                {mode === 'normal' ? '通常' : mode === 'eco' ? '省エネ' : '養生'}
+                {mode === 'busy' ? '多忙' : mode === 'normal' ? '通常' : mode === 'eco' ? '省エネ' : '養生'}
               </button>
             ))}
           </div>

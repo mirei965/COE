@@ -15,7 +15,7 @@ export interface BottomNavItem {
 const defaultNavItems: BottomNavItem[] = [
   { href: '/', label: 'ホーム', icon: Home },
   { href: '/calendar', label: 'カレンダー', icon: Calendar },
-  { href: '/stats', label: '統計', icon: BarChart3 },
+  { href: '/report', label: 'レポート', icon: BarChart3 },
   { href: '/chat', label: '相談', icon: MessageCircle },
   { href: '/settings', label: '設定', icon: Settings },
 ];
@@ -53,6 +53,7 @@ export function BottomNav({ items = defaultNavItems, className }: BottomNavProps
             <Link
               key={item.href}
               href={item.href}
+              id={`nav-${item.href.replace('/', '') || 'home'}`}
               className={cn(
                 'flex flex-col items-center justify-center gap-1 px-4 py-2',
                 'transition-colors',

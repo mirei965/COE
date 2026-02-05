@@ -574,7 +574,7 @@ export function DayStamps() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <Card className="border-brand-100 dark:border-slate-800 relative">
+      <Card id="step-stamps" className="border-none shadow-none bg-transparent overflow-visible">
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0 text-slate-700 dark:text-slate-200">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Zap className="h-5 w-5 text-brand-400" />
@@ -593,7 +593,7 @@ export function DayStamps() {
           <div className="grid gap-6">
             {categories.map((cat) => (
               <div key={cat.key} className="space-y-2">
-                <h3 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase flex items-center gap-1.5 pt-2">
+                <h3 className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-300 uppercase flex items-center gap-1.5 pt-2">
                   <span className={cn(
                     "w-2 h-2 rounded-full",
                     cat.color === 'red' && "bg-red-400",

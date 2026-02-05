@@ -8,8 +8,19 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function GuidePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorialV2');
+    if (!hasSeenTutorial) {
+      router.replace('/');
+    }
+  }, [router]);
+
   return (
     <PageLayout title="使い方ガイド">
       <div className="max-w-3xl mx-auto space-y-8 pb-10">
@@ -83,6 +94,13 @@ export default function GuidePage() {
                   <div>
                     <span className="font-bold block text-slate-800 dark:text-slate-200">頓服スタンプ</span>
                     <span className="text-slate-500">頓服薬を飲んだ時にタップします。レポートで服用回数を確認できます。</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-100 text-indigo-600 rounded-full shrink-0"><Moon className="h-4 w-4" /></div>
+                  <div>
+                    <span className="font-bold block text-slate-800 dark:text-slate-200">昼寝ログ</span>
+                    <span className="text-slate-500">日中に昼寝をした時間を15〜60分の単位で記録できます。1日に複数回記録することも可能です。</span>
                   </div>
                 </div>
               </div>

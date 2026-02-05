@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { getLocalISOString } from '@/lib/date';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarDays, HelpCircle } from 'lucide-react';
+import { CalendarDays, Lightbulb } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export function HomeHero() {
@@ -73,9 +73,9 @@ export function HomeHero() {
 
       <Link
         href="/guide"
-        className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-cyan-300 transition-colors bg-white/40 dark:bg-black/30 rounded-full backdrop-blur-sm border border-white/20 dark:border-white/5"
+        className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-cyan-300 transition-all bg-white/60 dark:bg-black/40 rounded-full backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm animate-gentle-pulse hover:animate-none"
       >
-        <HelpCircle className="h-3.5 w-3.5" />
+        <Lightbulb className="h-3.5 w-3.5 text-amber-500 fill-amber-500/10" />
         <span>使い方ガイド</span>
       </Link>
 

@@ -11,6 +11,9 @@ const reportRequestSchema = z.object({
     date: z.string(),
     dayOverall: z.string().optional(),
     sleepQuality: z.number().optional(),
+    napDuration: z.number().optional(),
+    migraineProdrome: z.number().optional(),
+    fatigueLevel: z.number().optional(),
     note: z.string().optional(),
     echoSummary: z.string().optional(),
   })),
@@ -43,7 +46,7 @@ export async function POST(req: Request) {
 
     const logsText = data.dayLogs
       .map(log => 
-        `- ${log.date}: 調子=${log.dayOverall || '-'}, 睡眠質=${log.sleepQuality || '-'}, AI反響=${log.echoSummary || 'なし'}, メモ=${log.note || 'なし'}`
+        `- ${log.date}: 調子=${log.dayOverall || '-'}, 睡眠質=${log.sleepQuality || '-'}, 昼寝=${log.napDuration ? log.napDuration + '分' : 'なし'}, 予兆=${log.migraineProdrome || '0'}, 疲労感=${log.fatigueLevel || '0'}, AI反響=${log.echoSummary || 'なし'}, メモ=${log.note || 'なし'}`
       ).join('\n');
 
     const symptomsText = data.symptoms.map(s => `${s.name}(${s.count}回)`).join(', ');
@@ -56,8 +59,11 @@ export async function POST(req: Request) {
 以下のデータを解釈し、医師がカルテに記載するような、**自然で専門的な日本語**で要約してください。
 
 【データ読み替えルール】
-- 調子 (dayOverall): good=「良好/安定」, fair=「普通/維持」, bad=「不調/不安定」
+- 調子 (dayOverall/todayMode): good=「良好/安定」, fair=「普通/維持」, bad=「不調/不安定」, busy=「多忙/高活動」
 - 睡眠の質 (sleepQuality): 1〜5。3が標準。低いと「質が低下」、高いと「熟眠感あり」。
+- 昼寝 (napDuration): 分単位での昼寝時間。多いと日中の倦怠感。
+- 頭痛予兆 (migraineProdrome): 0〜3。高いほど頭痛の気配が強い。
+- 疲労感 (fatigueLevel): 0〜3。高いほど日中の疲れ・倦怠感が強い。
 - AI反響 (echoSummary): 日々のAIからの励ましメッセージ（参考情報として、患者の心理状態の把握に使う）。
 
 【対象期間】

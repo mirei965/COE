@@ -98,7 +98,7 @@ export function NightReview() {
 
   if (!isOpen && !dayLog?.dayOverall) {
     return (
-      <Card className="cursor-pointer border-brand-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50" onClick={() => setIsOpen(true)}>
+      <Card id="step-night-collapsed" className="cursor-pointer border-brand-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50" onClick={() => setIsOpen(true)}>
         <CardHeader className="py-4">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Moon className="h-5 w-5 text-indigo-400" />
@@ -112,7 +112,7 @@ export function NightReview() {
   // If closed but has data, show summary card
   if (!isOpen && dayLog?.dayOverall) {
     return (
-      <Card className="border-indigo-100 dark:border-indigo-900 bg-indigo-50/30 dark:bg-indigo-900/10">
+      <Card id="step-night-summary" className="border-indigo-100 dark:border-indigo-900 bg-indigo-50/30 dark:bg-indigo-900/10">
         <CardHeader className="py-4 pb-2">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -132,7 +132,7 @@ export function NightReview() {
   }
 
   return (
-    <Card className="border-brand-100 dark:border-slate-800">
+    <Card id="step-night" className="border-brand-100 dark:border-slate-800">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
           <Moon className="h-6 w-6 text-indigo-400" />
@@ -143,7 +143,7 @@ export function NightReview() {
         {/* Overall & Dinner */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">1日の総合</label>
+            <label className="text-sm font-bold text-slate-800 dark:text-slate-200">1日の総合</label>
             <div className="flex gap-1">
               {(['good', 'fair', 'bad'] as const).map(opt => (
                 <button key={opt}
@@ -164,7 +164,7 @@ export function NightReview() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">夕食の量</label>
+            <label className="text-sm font-bold text-slate-800 dark:text-slate-200">夕食の量</label>
             <div className="flex gap-1">
               {(['light', 'medium', 'heavy'] as const).map(opt => (
                 <button key={opt}
@@ -184,7 +184,7 @@ export function NightReview() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">フリーメモ</label>
+          <label className="text-sm font-bold text-slate-800 dark:text-slate-200">フリーメモ</label>
           <Textarea
             placeholder="今日の日記..."
             value={formData.note}
@@ -194,7 +194,7 @@ export function NightReview() {
 
         <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">
               <Sparkles className="h-3 w-3" /> Echo (AI Summary)
             </div>
             {!summaryPreview && (

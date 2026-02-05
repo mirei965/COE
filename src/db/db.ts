@@ -15,11 +15,13 @@ export interface DayLog {
   sleepQuality?: number; // 1-5
   morningArousal?: number; // 1-5
   migraineProdrome?: number; // 0-3
+  fatigueLevel?: number; // 0-3
   isMenstruation?: boolean;
-  todayMode?: 'normal' | 'eco' | 'rest';
+  todayMode?: 'busy' | 'normal' | 'eco' | 'rest';
   
   dayOverall?: 'good' | 'fair' | 'bad';
   dinnerAmount?: 'light' | 'medium' | 'heavy';
+  napDuration?: number; // minutes
   bestMeasure?: string;
   note?: string;
   
@@ -32,7 +34,7 @@ export interface DayLog {
 export interface EventLog {
   id?: number;
   date: string; // 'YYYY-MM-DD'
-  type: 'symptom' | 'medicine' | 'trigger' | 'food';
+  type: 'symptom' | 'medicine' | 'trigger' | 'food' | 'nap';
   name: string;
   severity: number;
   timestamp: number;

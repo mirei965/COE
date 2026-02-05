@@ -146,6 +146,7 @@ export default function CalendarPage() {
   const [nightReviewForm, setNightReviewForm] = useState({
     dayOverall: 'fair' as 'good' | 'fair' | 'bad',
     dinnerAmount: 'medium' as 'light' | 'medium' | 'heavy',
+    napDuration: 0,
     note: '',
     echoSummary: '',
   });
@@ -155,6 +156,7 @@ export default function CalendarPage() {
       setNightReviewForm({
         dayOverall: selectedDayLog.dayOverall ?? 'fair',
         dinnerAmount: selectedDayLog.dinnerAmount ?? 'medium',
+        napDuration: selectedDayLog.napDuration ?? 0,
         note: selectedDayLog.note ?? '',
         echoSummary: selectedDayLog.echoSummary ?? '',
       });
@@ -162,6 +164,7 @@ export default function CalendarPage() {
       setNightReviewForm({
         dayOverall: 'fair',
         dinnerAmount: 'medium',
+        napDuration: 0,
         note: '',
         echoSummary: '',
       });
@@ -174,6 +177,7 @@ export default function CalendarPage() {
       await db.dayLogs.update(selectedDateStr, {
         dayOverall: nightReviewForm.dayOverall,
         dinnerAmount: nightReviewForm.dinnerAmount,
+        napDuration: nightReviewForm.napDuration,
         note: nightReviewForm.note,
         updatedAt: Date.now(),
       });
@@ -186,6 +190,7 @@ export default function CalendarPage() {
         id: selectedDateStr,
         dayOverall: nightReviewForm.dayOverall,
         dinnerAmount: nightReviewForm.dinnerAmount,
+        napDuration: nightReviewForm.napDuration,
         note: nightReviewForm.note,
         createdAt: existing?.createdAt || Date.now(),
         updatedAt: Date.now(),
@@ -200,8 +205,9 @@ export default function CalendarPage() {
     sleepQuality: 3,
     morningArousal: 3,
     migraineProdrome: 0,
+    fatigueLevel: 0,
     isMenstruation: false,
-    todayMode: 'normal' as 'normal' | 'eco' | 'rest',
+    todayMode: 'normal' as 'busy' | 'normal' | 'eco' | 'rest',
     sleepTime: '23:00',
     wakeTime: '07:00',
   });
@@ -212,6 +218,7 @@ export default function CalendarPage() {
         sleepQuality: selectedDayLog.sleepQuality ?? 3,
         morningArousal: selectedDayLog.morningArousal ?? 3,
         migraineProdrome: selectedDayLog.migraineProdrome ?? 0,
+        fatigueLevel: selectedDayLog.fatigueLevel ?? 0,
         isMenstruation: selectedDayLog.isMenstruation ?? false,
         todayMode: selectedDayLog.todayMode ?? 'normal',
         sleepTime: selectedDayLog.sleepStart ? new Date(selectedDayLog.sleepStart).toTimeString().slice(0, 5) : '23:00',
@@ -223,6 +230,7 @@ export default function CalendarPage() {
         sleepQuality: 3,
         morningArousal: 3,
         migraineProdrome: 0,
+        fatigueLevel: 0,
         isMenstruation: false,
         todayMode: 'normal',
         sleepTime: '23:00',
@@ -252,8 +260,9 @@ export default function CalendarPage() {
         sleepQuality: dailyDataForm.sleepQuality,
         morningArousal: dailyDataForm.morningArousal,
         migraineProdrome: dailyDataForm.migraineProdrome,
+        fatigueLevel: dailyDataForm.fatigueLevel,
         isMenstruation: dailyDataForm.isMenstruation,
-        todayMode: dailyDataForm.todayMode,
+        todayMode: dailyDataForm.todayMode as any,
         createdAt: selectedDayLog?.createdAt || Date.now(),
         updatedAt: Date.now(),
       });
@@ -519,6 +528,17 @@ export default function CalendarPage() {
                           </span>
                         </div>
                       )}
+                      {selectedDayLog.napDuration !== undefined && selectedDayLog.napDuration > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-slate-500 font-bold uppercase">昼寝</span>
+                          <span className="text-slate-700 dark:text-slate-300 font-medium">
+                            {selectedDayLog.napDuration >= 60
+                              ? `${Math.floor(selectedDayLog.napDuration / 60)}時間${selectedDayLog.napDuration % 60 > 0 ? (selectedDayLog.napDuration % 60) + '分' : ''}`
+                              : `${selectedDayLog.napDuration}分`
+                            }
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -575,6 +595,40 @@ export default function CalendarPage() {
                         </div>
                       </div>
                     )}
+                    <div className="pt-2 flex gap-4">
+                      {selectedDayLog.migraineProdrome !== undefined && selectedDayLog.migraineProdrome > 0 && (() => {
+                        const prodrome = selectedDayLog.migraineProdrome;
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase">頭痛予兆</span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3].map(lvl => (
+                                <div key={lvl} className={cn("w-3 h-1 rounded-full", lvl <= prodrome ? "bg-rose-500" : "bg-slate-200 dark:bg-slate-700")} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {selectedDayLog.fatigueLevel !== undefined && selectedDayLog.fatigueLevel > 0 && (() => {
+                        const fatigue = selectedDayLog.fatigueLevel;
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase">疲労感</span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3].map(lvl => (
+                                <div key={lvl} className={cn("w-3 h-1 rounded-full", lvl <= fatigue ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-700")} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {selectedDayLog.isMenstruation && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-slate-500 font-bold uppercase invisible">生理</span>
+                          <span className="px-1.5 py-0.5 bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 rounded text-[10px] font-bold">生理中</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -681,9 +735,10 @@ export default function CalendarPage() {
                                 log.type === 'symptom' ? "text-red-500 border-red-200 bg-red-50 dark:bg-red-500/20 dark:border-red-500/50 dark:text-red-300" :
                                   log.type === 'medicine' ? "text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300" :
                                     log.type === 'trigger' ? "text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300" :
-                                      "text-emerald-500 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300"
+                                      log.type === 'nap' ? "text-indigo-500 border-indigo-200 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300" :
+                                        "text-emerald-500 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300"
                               )}>
-                                {log.type === 'symptom' ? '症状' : log.type === 'medicine' ? '薬' : log.type === 'trigger' ? '原因' : '食事'}
+                                {log.type === 'symptom' ? '症状' : log.type === 'medicine' ? '薬' : log.type === 'trigger' ? '原因' : log.type === 'nap' ? '昼寝' : '食事'}
                               </span>
                               {(log.note || log.name.includes('(')) && (
                                 <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -895,6 +950,26 @@ export default function CalendarPage() {
                 </div>
               </div>
 
+              {/* Nap Duration */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">昼寝の時間</label>
+                <div className="flex flex-wrap gap-1">
+                  {[0, 15, 30, 60, 90, 120].map(duration => (
+                    <button key={duration}
+                      onClick={() => setNightReviewForm({ ...nightReviewForm, napDuration: duration })}
+                      className={cn(
+                        "px-3 py-2 rounded text-xs font-bold border transition-all flex-1 min-w-[60px]",
+                        nightReviewForm.napDuration === duration
+                          ? "bg-brand-100 text-brand-700 border-brand-400 dark:bg-brand-900/40 dark:text-brand-300 dark:border-brand-700"
+                          : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      {duration === 0 ? 'なし' : duration >= 60 ? `${Math.floor(duration / 60)}h${duration % 60 > 0 ? duration % 60 : ''}` : `${duration}分`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500">フリーメモ</label>
                 <Textarea
@@ -994,11 +1069,11 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {/* Prodrome & Menstruation */}
-              <div className="flex items-center justify-between py-2 border-t border-b border-slate-100 dark:border-slate-800">
+              {/* Prodrome, Fatigue & Menstruation */}
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-4 items-end py-2 border-t border-b border-slate-100 dark:border-slate-800">
                 <div className="space-y-2">
                   <span className="block text-xs font-bold text-slate-500">頭痛予兆</span>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     {[0, 1, 2, 3].map((level) => (
                       <button
                         key={level}
@@ -1006,7 +1081,26 @@ export default function CalendarPage() {
                         className={cn(
                           "h-8 w-8 rounded-full text-xs font-bold transition-all border flex items-center justify-center",
                           dailyDataForm.migraineProdrome === level
-                            ? "bg-rose-500 text-white border-rose-500 shadow-md transform scale-105"
+                            ? "bg-brand-500 text-white border-brand-500 shadow-sm"
+                            : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
+                        )}
+                      >
+                        {level === 0 ? '-' : level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <span className="block text-xs font-bold text-slate-500">疲労感</span>
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2, 3].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setDailyDataForm({ ...dailyDataForm, fatigueLevel: level })}
+                        className={cn(
+                          "h-8 w-8 rounded-full text-xs font-bold transition-all border flex items-center justify-center",
+                          dailyDataForm.fatigueLevel === level
+                            ? "bg-brand-500 text-white border-brand-500 shadow-sm"
                             : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
                         )}
                       >
@@ -1027,8 +1121,8 @@ export default function CalendarPage() {
               {/* Today Mode */}
               <div className="space-y-2">
                 <span className="text-xs font-bold text-slate-500">コンディションモード</span>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['normal', 'eco', 'rest'] as const).map((mode) => (
+                <div className="grid grid-cols-4 gap-2">
+                  {(['busy', 'normal', 'eco', 'rest'] as const).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setDailyDataForm({ ...dailyDataForm, todayMode: mode })}
@@ -1039,7 +1133,7 @@ export default function CalendarPage() {
                           : "bg-transparent border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200"
                       )}
                     >
-                      {mode === 'normal' ? '通常' : mode === 'eco' ? '省エネ' : '養生'}
+                      {mode === 'busy' ? '多忙' : mode === 'normal' ? '通常' : mode === 'eco' ? '省エネ' : '養生'}
                     </button>
                   ))}
                 </div>
