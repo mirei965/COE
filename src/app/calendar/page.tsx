@@ -275,9 +275,10 @@ export default function CalendarPage() {
 
   // Add Log State
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newLogType, setNewLogType] = useState<'symptom' | 'medicine'>('symptom');
+  const [newLogType, setNewLogType] = useState<'symptom' | 'medicine' | 'nap'>('symptom');
   const [newLogName, setNewLogName] = useState('');
   const [newLogTime, setNewLogTime] = useState('12:00');
+  const [newNapDuration, setNewNapDuration] = useState(15);
 
   const startEdit = (log: EventLog) => {
     if (!log.id) return;
@@ -301,7 +302,7 @@ export default function CalendarPage() {
   };
 
   const handleAddLog = async () => {
-    if (!newLogName) return;
+    if (newLogType !== 'nap' && !newLogName) return;
     const [hours, mins] = newLogTime.split(':').map(Number);
     const logDate = new Date(selectedDate);
     logDate.setHours(hours, mins);
@@ -309,14 +310,15 @@ export default function CalendarPage() {
     await db.eventLogs.add({
       date: selectedDateStr,
       type: newLogType,
-      name: newLogName,
-      severity: 1,
+      name: newLogType === 'nap' ? '昼寝' : newLogName,
+      severity: newLogType === 'nap' ? newNapDuration : 1,
       timestamp: logDate.getTime(),
-      note: '' // Ensure note exists for schema validation
+      note: ''
     });
 
     setShowAddModal(false);
     setNewLogName('');
+    setNewNapDuration(15);
   };
 
   const toggleVisitComplete = async (visitId: number, current: boolean) => {
@@ -836,41 +838,77 @@ export default function CalendarPage() {
                   type="button"
                   onClick={() => setNewLogType('medicine')}
                   className={cn(
-                    "flex-1 py-2 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all",
+                    "flex-1 py-1.5 text-[10px] font-bold rounded-md flex items-center justify-center gap-1 transition-all",
                     newLogType === 'medicine' ? "bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
                   )}
                 >
-                  <Pill className="h-4 w-4" /> お薬
+                  <Pill className="h-3 w-3" /> お薬
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewLogType('nap')}
+                  className={cn(
+                    "flex-1 py-1.5 text-[10px] font-bold rounded-md flex items-center justify-center gap-1 transition-all",
+                    newLogType === 'nap' ? "bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                  )}
+                >
+                  <Moon className="h-3 w-3" /> 昼寝
                 </button>
               </div>
 
-              {/* Name Input / Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1">内容</label>
-                {newLogType === 'medicine' && medicines && medicines.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {medicines.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => setNewLogName(m.name)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-full text-xs font-bold border transition-colors",
-                          newLogName === m.name
-                            ? "bg-blue-500 text-white border-blue-500"
-                            : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
-                        )}
-                      >
-                        {m.name}
-                      </button>
-                    ))}
+              {/* Name Input / Selection / Nap Duration */}
+              <div className="space-y-3">
+                {newLogType === 'nap' ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 ml-1">昼寝の時間</label>
+                    <div className="flex flex-wrap gap-1">
+                      {[15, 30, 45, 60, 90, 120].map(duration => (
+                        <button
+                          key={duration}
+                          type="button"
+                          onClick={() => setNewNapDuration(duration)}
+                          className={cn(
+                            "px-2 py-1.5 rounded text-[10px] font-bold border transition-all flex-1 min-w-[50px]",
+                            newNapDuration === duration
+                              ? "bg-indigo-100 text-indigo-700 border-indigo-400 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-700"
+                              : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          {duration >= 60 ? `${Math.floor(duration / 60)}h${duration % 60 > 0 ? duration % 60 : ''}` : `${duration}分`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ) : null}
-                <Input
-                  placeholder={newLogType === 'symptom' ? "頭痛, めまい, etc." : "薬の名前"}
-                  value={newLogName}
-                  onChange={e => setNewLogName(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800"
-                />
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 ml-1">内容</label>
+                    {newLogType === 'medicine' && medicines && medicines.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {medicines.map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setNewLogName(m.name)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs font-bold border transition-colors",
+                              newLogName === m.name
+                                ? "bg-blue-500 text-white border-blue-500"
+                                : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                            )}
+                          >
+                            {m.name}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <Input
+                      placeholder={newLogType === 'symptom' ? "頭痛, めまい, etc." : "薬の名前"}
+                      value={newLogName}
+                      onChange={e => setNewLogName(e.target.value)}
+                      className="bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Time Input */}
@@ -885,7 +923,7 @@ export default function CalendarPage() {
                 />
               </div>
 
-              <Button className="w-full h-12 mt-4 font-bold" onClick={handleAddLog} disabled={!newLogName}>
+              <Button className="w-full h-12 mt-4 font-bold" onClick={handleAddLog} disabled={newLogType !== 'nap' && !newLogName}>
                 追加する
               </Button>
             </div>

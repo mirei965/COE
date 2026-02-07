@@ -27,7 +27,7 @@ export const dayLogSchema = z.object({
   morningArousal: z.number().min(1).max(5).optional(),
   migraineProdrome: z.number().min(0).max(3).optional(),
   fatigueLevel: z.number().min(0).max(3).optional(),
-  todayMode: z.enum(['normal', 'eco', 'rest']).optional(),
+  todayMode: z.enum(['busy', 'normal', 'eco', 'rest']).optional(),
   isMenstruation: z.boolean().optional(),
   dayOverall: z.enum(['good', 'fair', 'bad']).optional(),
   dinnerAmount: z.enum(['light', 'medium', 'heavy']).optional(),
@@ -35,6 +35,8 @@ export const dayLogSchema = z.object({
   bestMeasure: noteSchema,
   note: noteSchema,
   echoSummary: noteSchema,
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
 }).passthrough();
 
 export type DayLogInput = z.infer<typeof dayLogSchema>;
@@ -44,9 +46,9 @@ export type DayLogInput = z.infer<typeof dayLogSchema>;
  */
 export const eventLogSchema = z.object({
   date: dateIdSchema,
-  type: z.enum(['symptom', 'medicine', 'trigger', 'food']),
+  type: z.enum(['symptom', 'medicine', 'trigger', 'food', 'nap']),
   name: z.string().min(1).max(100),
-  severity: z.number().min(1).max(5),
+  severity: z.number().min(0).max(1440),
   note: noteSchema,
   timestamp: z.number(),
 }).passthrough();

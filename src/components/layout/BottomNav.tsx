@@ -64,8 +64,8 @@ export function BottomNav({ items = defaultNavItems, className }: BottomNavProps
                 }
               )}
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <Icon className="h-6 w-6" />
+              {/* <span className="text-xs font-medium">{item.label}</span> */}
             </Link>
           );
         })}
