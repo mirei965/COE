@@ -9,7 +9,7 @@ interface PullToRefreshProps {
 }
 
 export function PullToRefresh({ children }: PullToRefreshProps) {
-  const [startPoint, setStartPoint] = useState(0);
+  const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
   const [pullChange, setPullChange] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,27 +21,28 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isTop()) {
-      setStartPoint(e.touches[0].screenY);
+      setStartPoint({ x: e.touches[0].screenX, y: e.touches[0].screenY });
     } else {
-      setStartPoint(0);
+      setStartPoint({ x: 0, y: 0 });
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!startPoint || isRefreshing) return;
+    if (!startPoint.y || isRefreshing) return;
 
+    const currentX = e.touches[0].screenX;
     const currentY = e.touches[0].screenY;
-    const diff = currentY - startPoint;
+    const dx = Math.abs(currentX - startPoint.x);
+    const dy = currentY - startPoint.y;
+
+    // 横方向の動きが強い場合は無視（ぐらつき防止）
+    if (dx > Math.abs(dy)) return;
 
     // 下方向へのプルかつ、トップにいる場合のみ
-    if (diff > 0 && isTop()) {
+    if (dy > 0 && isTop()) {
       // 抵抗感のあるプル動作（対数的に変化量を減らす）
-      const resistance = diff * 0.45;
+      const resistance = dy * 0.45;
       setPullChange(Math.min(resistance, 150)); // 最大150pxまで
-
-      // ブラウザ標準のスクロール等を防ぐ必要がある場合は e.preventDefault() だが、
-      // ReactのSyntheticEventではpassiveリスナー問題があるため難しい。
-      // globals.cssの overscroll-behavior-y: none が効いていればOK。
     }
   };
 
@@ -60,7 +61,7 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
     } else {
       // キャンセル：元に戻す
       setPullChange(0);
-      setStartPoint(0);
+      setStartPoint({ x: 0, y: 0 });
     }
   };
 
@@ -79,7 +80,7 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
       style={{
         transform: `translateY(${pullChange}px)`,
         // リリース時の戻りを滑らかに、ドラッグ中は即座に追従
-        transition: startPoint > 0 ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        transition: startPoint.y > 0 ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
       }}
     >
       {/* Loading Indicator */}

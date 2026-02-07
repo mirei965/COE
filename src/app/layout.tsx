@@ -18,7 +18,8 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Prevent zooming in PWA often desired
+  userScalable: false,
+  viewportFit: "cover", // iOS notch compatibility
 };
 
 export const metadata: Metadata = {
